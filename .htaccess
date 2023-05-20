@@ -1,0 +1,42 @@
+DirectoryIndex /public/index.php
+
+# Prevent viewing of .htaccess file
+<Files .htaccess>
+order allow,deny
+deny from all
+</Files>
+
+# Prevent directory listings
+Options All -Indexes
+
+# Instead of showing a 404 error, when resource isn't found just load index.php
+FallbackResource /public/index.php
+
+RewriteEngine On
+RewriteBase /
+
+# force to use HTTPS
+# [N] flag means after applying rule the whole set is run again
+RewriteCond %{HTTPS} !=on
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,NE,N]
+Header always set Content-Security-Policy "upgrade-insecure-requests;"
+
+# individual redirects for all the old articles
+# Because these cause a redirect, that is a whole fresh new HTTP request which will get
+# passed through this rule set again. We do want the L flag here, because it means we
+# don't do any more fiddling with the redirected URL until it starts its NEXT pass.
+RewriteRule "^/?articles/absorption.htm" "/article/absorption-sphere" [R=301,L]
+RewriteRule "^/?articles/awareTiles.htm" "/article/neighbour-aware-tiles" [R=301,L]
+RewriteRule "^/?articles/brightSpots.htm" "/article/compute-shader-intro" [R=301,L]
+RewriteRule "^/?articles/decalsIntro.htm" "/article/decal-render-intro" [R=301,L]
+RewriteRule "^/?articles/dungeonTiles.htm" "/article/dungeon-tiles" [R=301,L]
+RewriteRule "^/?articles/findingBrighter.htm" "/article/optimise-compute-shader" [R=301,L]
+RewriteRule "^/?articles/lineOfSight.htm" "/article/line-of-sight-on-grid" [R=301,L]
+RewriteRule "^/?articles/pixelSmoke.htm" "/article/pixel-smoke" [R=301,L]
+RewriteRule "^/?articles/scriptableRender.htm" "/article/scriptable-render" [R=301,L]
+RewriteRule "^/?articles/sphereRefraction.htm" "/article/refraction-sphere" [R=301,L]
+RewriteRule "^/?articles/trigPalette.htm" "/article/simple-procedural-palette" [R=301,L]
+
+# If file doesn't exist, rewrite to /index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule "^(.*)$" "/index.php" [L]

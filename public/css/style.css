@@ -133,11 +133,16 @@ b {
 
 .download {
     display: block;
-    background-color: #79cf79;
+    background-color: #a4daa4;
     padding: 15px 20px 15px 15px;
     border-left: 6px solid #1bac18;
     margin-top: 0;
     margin-bottom: 2rem;
+}
+
+.download a:link,
+.download a:visited {
+    color: #2C3977;
 }
 
 aside {

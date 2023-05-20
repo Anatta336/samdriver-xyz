@@ -1,0 +1,494 @@
+body
+{
+  /* TODO: rather than setting a bunch of margin on header, section, article, footer set padding here */
+  background-color: #ffffff;
+  margin: 0 auto 0 auto;
+  border: 1px solid #b7b7b8;
+  max-width: 800px;
+
+  font-family: 'Roboto', sans-serif;
+	font-size: 1rem;
+	font-weight: normal;
+	font-style:	normal;
+	color: #202020;
+}
+
+/* for images or canvas elements that need "pixel" style rendering when scaled */
+.pixel
+{
+	image-rendering: optimizeSpeed;             /* Older versions of FF  */
+	image-rendering: -moz-crisp-edges;          /* FF 6.0+               */
+	image-rendering: -webkit-optimize-contrast; /* Safari                */
+	image-rendering: -o-crisp-edges;            /* Opera (12.02+) 	     */
+	image-rendering: pixelated;                 /* Chrome, maybe others  */
+	-ms-interpolation-mode: nearest-neighbor;   /* IE                    */
+}
+
+nav
+{
+  justify-content: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+
+  position: static;
+  width: 100%;
+
+  border-bottom: 1px solid #b7b7b8;
+	background: #ffffff;
+}
+nav a
+{
+  display: block;
+  flex-grow: 1;
+  width: auto;
+  max-width: 20ch;
+
+  text-decoration: none;
+  color: #4a4a4a;
+  background-color:	#f0f0f0;
+
+  font-size: 1.0rem;
+
+  padding: 0.9em 1.5em;
+  margin: 0;
+
+  text-transform: uppercase;
+  text-align: center;
+  font-weight: normal;
+  font-size: 1.2rem;
+  letter-spacing: 0.2em;
+
+  -webkit-transition: background-color 0.3s;
+  transition: background-color 0.3s;
+}
+nav a:nth-child(2)
+{
+	background-color:	#f9f9f9;
+}
+nav a:hover, nav a:active
+{
+	text-decoration:	none;
+	background-color:	#cae3ed
+}
+
+.code, code
+{
+  font-family: 'Roboto Mono', monospace;
+	font-size: 0.8rem;
+	letter-spacing: 0px;
+}
+
+pre .code, pre code
+{
+  display: block;
+  white-space: pre-wrap;
+	tab-size: 2;
+  -moz-tab-size: 2;
+
+  padding-left: 5px;
+  padding-right: 5px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+
+  color: #e3e3e3;
+  background-color:	#404040;
+  border-left: solid 6px #a3a3b2;
+  margin-top: 0;
+  margin-bottom: 2rem;
+}
+
+.code .comment, code .comment
+{
+  color: #27d17c;
+}
+
+figcaption
+{
+	text-align: center;
+}
+
+b
+{
+	font-weight: bold;
+}
+
+.warning
+{
+	display: block;
+	background-color:	#834732;
+	color: #ebebeb;
+	padding: 15px 20px 15px 15px;
+	border-left: 6px solid #ef6450;
+	margin-top: 0;
+	margin-bottom: 2rem;
+}
+
+.download
+{
+  display: block;
+	background-color:	#79cf79;
+  padding: 15px 20px 15px 15px;
+	border-left: 6px solid #1bac18;
+	margin-top: 0;
+	margin-bottom: 2rem;
+}
+
+aside
+{
+	display: block;
+	background-color:	#e3e3e3;
+	padding: 15px 20px 15px 15px;
+	border-left: 6px solid #b7b7b8;
+	margin-top: 0;
+	margin-bottom: 2rem;
+}
+
+.article-link-block
+{
+	display: block;
+	text-decoration: none;
+	max-width: 380px;
+
+	margin-top: 0;
+	margin-bottom: 0;
+	margin-left: auto;
+	margin-right: auto;
+
+	padding: 45px;
+
+	background-color:	#f0f0f0;
+	-webkit-transition:	background-color 0.3s;
+	transition: background-color 0.3s;
+	border-bottom: 1px solid #b7b7b8;
+}
+.article-link-block:nth-child(2n)
+{
+	background-color:	#f9f9f9;
+}
+.article-link-block:last-child
+{
+	border-bottom: none;
+}
+.article-link-block:hover, .article-link-block:active
+{
+	background-color:	#cae3ed;
+}
+
+.article-link-block h1
+{
+	text-transform: uppercase;
+	text-decoration: none;
+	text-align: center;
+	color: #000000;
+	font-weight: normal;
+	font-size: 1.2rem;
+	letter-spacing: 0.2em;
+
+	margin-top: 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.article-link-block p
+{
+	font-size: 1rem;
+	font-weight: normal;
+	font-style: normal;
+	text-decoration: none;
+	color: #202020;
+}
+
+header
+{
+	display: block;
+	width: 100%;
+  max-width: 450px;
+  padding: 0;
+  margin: 5em auto;
+  background-color: #ffffff;
+
+	color: #35594b;
+  font-family: 'Roboto', sans-serif;
+
+}
+header h1
+{
+	display: block;
+	font-size: 1.5rem;
+	font-weight: normal;
+	text-align: center;
+	letter-spacing: 0.35em;
+	text-transform: uppercase;
+
+	margin: 1em 0;
+	padding: 0;
+}
+header p
+{
+	display: block;
+	margin: 1em 0;
+  padding: 0;
+
+	text-align: center;
+ 	font-size: 1rem;
+	font-style: italic;
+}
+
+article
+{
+	display: block;
+	margin: 0;
+  padding: 0 60px 0;
+}
+
+section
+{
+	display: block;
+	margin: 0;
+  padding: 0 60px 0;
+}
+
+footer
+{
+	font-size: 0.6rem;
+	font-weight: normal;
+	font-style: normal;
+	color: #4a4a4a;
+  text-align: right;
+
+  padding: 0 30px;
+  border-top: 1px solid #b7b7b8;
+}
+
+@media (max-width: 800px)
+{
+  article, footer
+  {
+    padding-left:	2em;
+    padding-right: 2em;
+  }
+}
+@media (max-width: 600px)
+{
+  article, footer
+  {
+    padding-left: 1em;
+    padding-right: 1em;
+  }
+}
+
+article a:link, article a:visited
+{
+	color: #1e6a9a;
+}
+article a:hover
+{
+	color: #56afd0;
+}
+
+article>p, article>ul, article>ol, article>table
+{
+	margin-top: 0;
+	margin-bottom: 40px;
+}
+
+article h1, article h2
+{
+	text-transform: uppercase;
+	text-decoration: none;
+	text-align: left;
+	color: #000000;
+	font-weight: normal;
+	font-size: 0.95rem;
+	letter-spacing: 0.2em;
+
+	clear: both;
+	margin-top: 3rem;
+	margin-bottom: 1rem;
+	border-bottom: solid 1px #b7b7b8;
+}
+article h2
+{
+  font-family: 'Roboto Mono', monospace;
+	text-transform: none;
+}
+
+article canvas, article img, article video
+{
+	display: block;
+  padding: 0;
+
+  max-width: 100%;
+  width: auto;
+  height: auto;
+
+	margin-left: auto;
+	margin-right:	auto;
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+article canvas
+{
+  background: #edeff3;
+}
+
+article table, article tr, article td
+{
+  border-collapse: collapse;
+}
+
+article th
+{
+  border-collapse: collapse;
+  padding: 5px;
+  text-align: left;
+  font-weight: normal;
+  font-size: 1rem;
+}
+
+table.gridded td, table.gridded th
+{
+  border: solid 1px #b7b7b8;
+  font-family: 'Roboto Mono', monospace;
+	font-size: 0.8rem;
+	letter-spacing:	0px;
+  font-weight: normal;
+  padding: 3px;
+}
+
+article iframe
+{
+	display: block;
+	padding: 4px;
+	border: solid 1px #b7b7b8;
+
+	margin-left: auto;
+	margin-right:	auto;
+	margin-top: 10px;
+	margin-bottom:	10px;
+}
+
+img figure
+{
+	display: block;
+	float: none;
+	clear: none;
+	width: auto;
+	max-width: 100%;
+
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 5px;
+	margin-bottom: 30px;
+
+	padding: 0;
+}
+.left
+{
+	display: block;
+	float: left;
+	clear: left;
+	max-width: 500px;
+
+	margin-top: 0;
+	margin-bottom: 10px;
+	margin-left: 0;
+	margin-right:	40px;
+}
+.right
+{
+	display:		block;
+	float:			right;
+	clear:			right;
+	max-width:		500px;
+
+	margin-top:		0;
+	margin-bottom:	10px;
+	margin-left:	20px;
+	margin-right:	0;
+}
+
+/* within a figure only needs margin to separate from caption */
+figure img, figure canvas
+{
+	margin-top: 0;
+	margin-bottom: 10px;
+	margin-left: 0;
+	margin-right: 0;
+}
+
+/* -- Adjust images for narrow displays, bringing in the floaters */
+@media (max-width: 800px)
+{
+	.left, .right
+	{
+		display: block;
+		float: none;
+		clear: none;
+		max-width: 100%;
+
+		padding-top: 15px;
+		padding-bottom: 15px;
+		padding-left: 0px;
+		padding-right: 0px;
+
+		margin-left: auto;
+		margin-right: auto;
+	}
+}
+
+/*	allows multiple images to be displayed that will appear on a single line if
+	space allows, or spread nicely if not.
+*/
+.imageBox
+{
+	display: block;
+
+	display: flex;
+	width: 100%;
+	flex-wrap: wrap;
+	justify-content: space-around;
+	align-content: flex-start;
+
+	padding-top: 15px;
+	padding-bottom: 15px;
+}
+/* .imageBox>img, .imageBox>canvas, .imageBox>figure */
+.imageBox>*
+{
+	padding: 0;
+	margin: 8px;
+}
+
+sup
+{
+	font-size: 0.7rem;
+	font-weight: normal;
+	font-style: normal;
+}
+
+small
+{
+	font-size: 0.6rem;
+	font-weight: normal;
+	font-style: normal;
+	color: #4a4a4a;
+}
+
+.smallIcon
+{
+	margin-left: 4px;
+	padding: 0;
+	border: none;
+}
+
+footer a:link, footer a:visited
+{
+	color: #1e6a9a;
+}
+footer a:hover
+{
+	color: #56afd0;
+}

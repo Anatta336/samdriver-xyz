@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Bresenham's or Raycasting for Vision</title>
+    <meta name="description" content="Two similar algorithms are commonly used to check for line of sight in tile-based games. Which should you use?">
+    <meta name="sort" content="1970-01-03">
+</head>
+
+<body>
+    <article>
+<p>Common to Roguelikes and other tile-based games is the need for a visibility system of some kind. Only tiles that can be seen from where the player is stood are displayed, or all the tiles are visible but ranged attacks can only hit tiles that are not blocked from the caster's view. Either way you need a line of sight algorithm.</p>
+
+<h2>The Line</h2>
+<p>There's several ways to go about finding if a tile is visible, but for the purposes of this we'll stick with the line method. We simply draw a line from the player's position to the place we're interested in. If that line hits a wall or other vision blocking element then we know the player cannot see there. Simple.</p>
+
+<p>But a line is a geometric construct and isn't immediately compatible with the grid squares of our game map. We need to convert that line into a series of tile positions that we can then check for vision-blocking. If none of those tiles block vision then we know the player can see along the line.</p>
+
+<h2>Rival Algorithms</h2>
+<p>This is where Bresenham's line algorithm comes in. It appears to do exactly what we want, turning the geometric concept of a line into a series of squares on a regular grid (technically it gives points that can be represented as squares). But it was designed to nicely display a line to human eyes via a computer screen. It is not intended to indicate what locations a line passes through and it's generally that property we want for our line of sight test.</p>
+
+<p>We'll be putting it up against simple raycasting. Raycasting on a grid finds every square tile that a given geometric line will pass through.</p>
+
+<noscript>
+	<!-- if javascript is disabled hide the canvas that we can't use -->
+	<style>
+	#line-demo-box {
+		display: none;
+	}
+	</style>
+	<p class="warning">Javascript is disabled or unavailable in your browser so the interactive demo can't be shown. Here's static images instead:</p>
+	<div class="image-box">
+		<figure>
+			<img class="pixel" src="/article-data/line-of-sight-on-grid/lineStaticBresenham.png">
+			<figcaption>Bresenham's</figcaption>
+		</figure>
+		<figure>
+			<img class="pixel" src="/article-data/line-of-sight-on-grid/lineStaticRay.png">
+			<figcaption>Raycast</figcaption>
+		</figure>
+	</div>
+</noscript>
+
+<div class="image-box" id="line-demo-box">
+	<figure>
+		<canvas class="interactive" id="line-demo-bresenham" width="251" height="251"></canvas>
+		<figcaption>Bresenham's</figcaption>
+	</figure>
+	<figure>
+		<canvas class="interactive" id="line-demo-ray" width="251" height="251"></canvas>
+		<figcaption>Raycast</figcaption>
+	</figure>
+</div>
+<script defer="true" src="/article-data/line-of-sight-on-grid/lineOfSightDemo.js"></script>
+
+<p>Click and drag the line end-points to try different arrangements. Bresenham's line algorithm is compared to a standard raycast. Note that my raycast algorithm allows diagonal movement if the line passes perfectly through a corner.</p>
+
+<p>Notice how Bresenham often allows the geometric line (drawn over the tiles in blue) to pass through some cells without marking them. That means your line of sight test would be able to see through the corners of some walls. But let's actually try it out.</p>
+
+<h2>Visibility</h2>
+<p>With our line algorithms ready, we can use them to determine if each tile is visible from a given position. We simply step along the grid cells given by each line algorithm and if we hit a wall before reaching the target we know it is out of sight.</p>
+
+<noscript>
+	<!-- if javascript is disabled hide the canvas that we can't use -->
+	<style>
+	#visionDemoBox {
+		display: none;
+	}
+	</style>
+	<p class="warning">Javascript is disabled or unavailable in your browser so the interactive demo can't be shown. Here's static images instead:</p>
+	<div class="image-box">
+		<figure>
+			<img class="pixel" src="/article-data/line-of-sight-on-grid/visionStaticBresenham.png">
+			<figcaption>Bresenham's</figcaption>
+		</figure>
+		<figure>
+			<img class="pixel" src="/article-data/line-of-sight-on-grid/visionStaticRay.png">
+			<figcaption>Raycast</figcaption>
+		</figure>
+	</div>
+</noscript>
+
+<div class="image-box" id="visionDemoBox">
+	<figure>
+		<canvas class="interactive" id="visionDemoBresenham" width="251" height="251"></canvas>
+		<figcaption>Bresenham's</figcaption>
+	</figure>
+	<figure>
+		<canvas class="interactive" id="visionDemoRay" width="251" height="251"></canvas>
+		<figcaption>Raycast</figcaption>
+	</figure>
+</div>
+
+<p>You can drag the blue player around and observe what areas would be visible or hidden by the green walls.</p>
+
+<h2>Differences</h2>
+<p>Both algoritms give results that look generally correct. Bresenham's tends to be more generous with what is considered visible. That generosity makes sense with what we know about the line being able to pass through some cells without marking them. In a few specific situations Bresenham's shows itself to not be symmetrical - that is the player can see a tile which wouldn't be able to see the player (or vice versa). That asymmetry is eliminated in the raycast version.</p>
+
+<h2>Conclusions</h2>
+<p>While making these demos I've changed my mind several times over which algorithm I prefer. I tend to prefer Bresenham's more generous vision areas. But I find the asymmetry worrying as a source of exploits in a game. More generally I prefer to use an algorithm where its results are more understandable. The raycast returns every tile that a geometric line passes through, while Bresenham's returns a set of tiles that looks right but isn't as easily defined.</p>
+
+<p>It's also worth considering a variation on the raycast that marks a tile as visible if any of its corners can be reached by the ray, that would make for larger visible areas while still having a basis in physical reality. The roguelike community has created several other algorithms with a range of performance, physical correctness, and usefulness for game mechanics.</p>
+
+<p>What algorithm you use is up to you. Like many seemingly technical aspects of a game, this ends up being a design decision.</p>
+
+<h2>Source</h2>
+<p>I avoided explaining the internals of how the two algorithms work as that's outside the scope of this article. You can find many implementations online, and the <a href="/article-data/line-of-sight-on-grid/lineOfSightDemo.js">full Javascript source for the demos</a> is available. The two line algorithms are found in the makeRay and makeBresenham functions. When performing vision checks there's room for performance optimisation by ending a line check early when it's sufficiently similar to one that has already failed.</p>
+    </article>
+</body>
+</html>

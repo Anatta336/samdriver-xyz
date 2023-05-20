@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Simple Procedural Gradients</title>
+    <meta name="description" content="A classic way to generate a smooth series of colours.">
+    <meta name="sort" content="1970-01-01">
+</head>
+
+<body>
+    <article>
+
+<noscript>
+    <!-- if javascript is disabled hide the elements that we can't use -->
+    <style>
+    #palette-canvas, #palette-form, #value-readout, #preset-box {
+        display: none;
+    }
+    </style>
+    <p class="warning">Javascript is disabled or unavailable in your browser so the interactive palette can't be shown, which makes this page fairly pointless. But even so, here's an example output:</p>
+    <img class="pixel" src="/article-data/simple-procedural-palette/examplePalette.png">
+</noscript>
+<style>
+/* enlarge palette display on large screens */
+@media (min-width: 520px) {
+    #palette-canvas {
+        width:			500px;
+        height:			100px;
+    }
+}
+
+#palette-form {
+    margin-left:		auto;
+    margin-right:		auto;
+}
+#slider-bundle {
+    display:			flex;
+    flex-direction:		row;
+    flex-wrap:			wrap;
+    justify-content:	center;
+    align-items:		center;
+
+    padding-top:		0;
+    padding-left:		0;
+    padding-right:		0;
+    padding-bottom:		20px;
+}
+/* switch sliders into column arrangement on small screens */
+@media (max-width: 440px) {
+    #slider-bundle {
+        flex-direction:		column;
+    }
+}
+
+#slider-bundle input {
+    width:			100px;
+    margin-top:		0;
+    margin-bottom:	0;
+    margin-left:	5px;
+    margin-right:	5px;
+    padding-left:	5px;
+    padding-right:	5px;
+    padding-top:	5px;
+    padding-bottom:	5px;
+}
+
+#value-readout {
+    max-width:		300px;
+    margin-left:	auto;
+    margin-right:	auto;
+}
+
+#preset-box {
+    display:			flex;
+    flex-direction:		row;
+    flex-wrap:			wrap;
+    justify-content:	center;
+    align-items:		center;
+}
+
+input.preset {
+    display:			block;
+    font-family: 		futura, Montserrat, sans-serif;
+    font-size:			0.8rem;
+    letter-spacing:		2px;
+    font-weight:		normal;
+    font-style:			normal;
+    text-transform:		uppercase;
+    color:				#4a4a4a;
+
+    background-color:	#e5e5e5;
+    border-width:		0;
+    -webkit-transition:	background-color 0.3s;
+    transition:			background-color 0.3s;
+
+    padding:			8px;
+    margin:				8px;
+}
+input.preset:hover, input.preset:active {
+    text-decoration:	none;
+    background-color:	#cae3ed
+}
+</style>
+
+<canvas class="pixel" id="palette-canvas" width="250" height="50"></canvas>
+<div id="palette-form">
+    <div id="slider-bundle">
+        <input id="constantr" type="range" value="0.5" min="0.0" max="1.0" step="0.01">
+        <input id="constantg" type="range" value="0.5" min="0.0" max="1.0" step="0.01">
+        <input id="constantb" type="range" value="0.5" min="0.0" max="1.0" step="0.01">
+    </div>
+    <div id="slider-bundle">
+        <input id="multir" type="range" value="0.5" min="0.0" max="1.0" step="0.01">
+        <input id="multig" type="range" value="0.5" min="0.0" max="1.0" step="0.01">
+        <input id="multib" type="range" value="0.5" min="0.0" max="1.0" step="0.01">
+    </div>
+    <div id="slider-bundle">
+        <input id="repeatr" type="range" value="1.0" min="0.0" max="5.0" step="1.0">
+        <input id="repeatg" type="range" value="1.0" min="0.0" max="5.0" step="1.0">
+        <input id="repeatb" type="range" value="1.0" min="0.0" max="5.0" step="1.0">
+    </div>
+    <div id="slider-bundle">
+        <input id="phaser" type="range" value="0.00" min="0.0" max="1.0" step="0.01">
+        <input id="phaseg" type="range" value="0.33" min="0.0" max="1.0" step="0.01">
+        <input id="phaseb" type="range" value="0.67" min="0.0" max="1.0" step="0.01">
+    </div>
+</div>
+
+<div id="preset-box">
+<!-- js generated buttons are placed here -->
+</div>
+
+<pre><code id="value-readout">
+</code></pre>
+
+<script defer="true" src="/article-data/simple-procedural-palette/trigPalette.js"></script>
+
+<h2>Colour from a single number</h2>
+<p>This technique for generating colours lets you turn a single value into a colour that will smoothly change as the input value varies. This is very useful for colouring things like heat maps that you might normally just shade in greyscale. So long as the <code>repeat</code> set of values are integers the colour will also cycle smoothly if you loop from 1 back to 0, which makes it convenient for many more uses.</p>
+
+<p>The creation of the colour is a fairly simple operation, and on modern hardware can be safely done in realtime. The code isn't as immediately clear in Javascript, so I've included a short pseudocode version too.</p>
+<pre><code>// in a language with good vector support
+function generateColour(t) {
+   return constant + multi * cos(2 * pi * repeat + phase);
+}</code></pre>
+<pre><code>// in plain javascript
+var PI2 = 6.28319;
+function generateColour(t) {
+   if (t &lt; 0.0 || t &gt;= 1.0) t -= Math.floor(t);
+   return {
+      r: clamp(
+         constant.r + multi.r * Math.cos(
+            PI2 * (repeat.r * t + phase.r)
+         )),
+      g: clamp(
+         constant.g + multi.g * Math.cos(
+            PI2 * (repeat.g * t + phase.g)
+         )),
+      b: clamp(
+         constant.b + multi.b * Math.cos(
+            PI2 * (repeat.b * t + phase.b)
+         ))
+   };
+}</code></pre>
+<h2>Creating a Palette</h2>
+<p>I think it's easiest to learn how the various parameters influence the palette by just experimenting for yourself. To understand how it works I recomment hitting the <code>simplyRed</code> preset button to turn down all the other channels. Fiddle with the first of each of the sliders and you'll soon see what effect they have on the cosine pattern. To actually create a palette I usually just hit random until something nice shows up and tweak it a little. I used a palette from this in my <a href="/article/pixel-smoke">pixel smoke demo</a> if you'd like to see it in action in something simple.</p>
+
+<p>By the way, my apologises if the slider controls look a little odd in your browser. It turns out everyone likes to render them substantially differently. I think I've got the CSS in a state where they're at least usable in all major browsers. The <a href="/article-data/simple-procedural-palette/trigPalette.js">complete Javascript source</a> for this demo is available, although most the code is to link up the sliders and so on. It's just the <code>generateColour()</code> function given above that's important.</p>
+    </article>
+</body>
+</html>

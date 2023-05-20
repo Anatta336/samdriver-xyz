@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Dungeon Tile Example</title>
+    <meta name="description" content="A practical example of dynamic tile selection.">
+    <meta name="sort" content="1970-01-05">
+</head>
+
+<body>
+    <article>
+<style>
+#dungeon-canvas {
+	width:			576px;
+	height:			576px;
+}
+@media (max-width: 570px) {
+	#dungeon-canvas {
+		width:		288px;
+		height:		288px;
+	}
+}
+.button-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+#reset-button {
+	padding: 5px 10px;
+}
+</style>
+<noscript>
+	<!-- if javascript is disabled hide the canvas that we can't use -->
+	<style>
+	#dungeon-canvas, #reset-button {
+		display: none;
+	}
+
+	</style>
+	<p class="warning">Javascript is disabled or unavailable in your browser so the demo cannot be shown. Here's a static image instead:</p>
+	<img id="dungeon-static" src="/article-data/dungeon-tiles/dungeonStatic.png" width="288" height="288">
+</noscript>
+
+<canvas class="pixel" id="dungeon-canvas" width="288" height="288"></canvas>
+<div class="button-wrap">
+    <input type="button" id="reset-button" value="Reset">
+</div>
+
+<script defer="true" src="/article-data/dungeon-tiles/dungeonTiles.js"></script>
+
+<p>Click in the image above above to toggle where the tops of walls should be.</p>
+
+<p class="aside">This demo uses tile graphics created by <a href="http://www.retinaleclipse.com/">Agnes Heyer</a> and released under the <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license. The <a href="/article-data/dungeon-tiles/dungeonTiles.js">Javascript source</a> is available. The original tileset graphics have been modified slightly, with the modified version available at the bottom of this article. In accordance with the Share-Alike terms, the demo is available under the same <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license.</p>
+
+<p>This is a supplement to my past tutorial on <a href="/article/neighbour-aware-tiles">automatic tile selection</a> so it's best you read that first.</p>
+
+<h2>Practicalities</h2>
+<p>As is often the case, the neat theory doesn't apply quite so easily to real world situations. The technique presented in my <a href="/article/neighbour-aware-tiles">original article</a> works beautifully with a tileset that's designed in a particular way, but takes some adjustment to work with others. Let's go throught the process of automatically applying this dungeon tileset from <a href="http://www.retinaleclipse.com/">Agnes Heyer</a> to a generated or dynamic map.</p>
+
+<h2>Wall of two parts</h2>
+<p>You'll notice the walls in this tileset are made of two separate tiles, one for the side and one for the top. Every wallTop has either another wallTop or a wallSide directly below it. We enforce this in code by defining the map firstly by the position of wallTops, then spawning wallSides in empty tiles below them.</p>
+
+<p>Both wallTop and wallSide are neighbour-aware tiles that appear differently depending on what they're surrounded by.</p>
+
+<h2>WallTop</h2>
+<p>The wallTop tile can connect to other wallTop tiles in any of four directions. This both looks nice and emphasises the contiguity of the wall from the point of view of game mechanics. So we apply the standard techique of assigning powers of two to each direction to calculate the tile index that should be displayed:</p>
+
+<pre><code>function calcTileIndexFull(
+ isAboveSame, isLeftSame,
+ isBelowSame, isRightSame) {
+   var sum = 0;
+   if (isAboveSame) sum += 1;
+   if (isLeftSame)  sum += 2;
+   if (isBelowSame) sum += 4;
+   if (isRightSame) sum += 8;
+   return sum;
+}</code></pre>
+
+<p>This works fine, except for one situation due to how the tiles are designed. If a wallTop has connections in every direction it is drawn as if it's part of a + shaped arrangement, but that may not be the case.</p>
+
+<style>
+	#tileTopExample {
+		width:		172px;
+		height:		216px;
+	}
+	@media (max-width: 405px) {
+		#tileTopExample {
+			width:		86px;
+			height:		108px;
+		}
+	}
+</style>
+<div class="image-box">
+	<img id="tileTopExample" class="pixel" src="/article-data/dungeon-tiles/tileTopCross.png" width="86" height="108">
+	<img id="tileTopExample" class="pixel" src="/article-data/dungeon-tiles/tileTopBlock.png" width="86" height="108">
+</div>
+
+<p>We could detect this situation by adding awareness of diagonal neighbours, but that would mean a massive increase of tile variations from 2<sup>4</sup> = 16 to 2<sup>8</sup> = 256. For the sake of this demo I've just designed the map so that walls are never in blocks like that. Other solutions include adding sub-tile graphics that deal with just the corners.</p>
+
+<h2>WallSide</h2>
+<p>Because only one side of the walls are ever visible, wallSide needs far fewer variations than wallTop. Looking closely you can see that the wallSides that are exposed to open air have slightly lightened edges to the bricks. It's a subtle effect but adds a lot to the feeling of the finished dungeon looking like a solid object and not just a series of tiles. Because we only have two neighbours to consider for wallSide, there only need to be 2<sup>2</sup> = 4 variations.</p>
+
+<pre><code>function calcTileIndexSide(
+ isLeftSame,
+ isRightSame) {
+   var sum = 0;
+   if (isLeftSame) sum += 1;
+   if (isRightSame) sum += 2;
+   return sum;
+}</code></pre>
+
+<h2>Random Variation</h2>
+<p>In addition to the neighbour aware variations, this tileset also includes several versions of some tiles that can be used in any situation to give some visual variety. A prime example is the floor tiles that don't have any neighbour aware variations but have many versions of plain rock and grass that can be placed anywhere that calls for a floor tile.</p>
+
+<p>You can pick these random variations using a simple <code>var variation = Math.floor(Math.random() * VARIATION_COUNT);</code> But in the case of a dynamic map you probably don't want them to change every time that tile needs to be calculated. To correct that simply generate a <code>Math.random()</code> value once and store it for each tile position. (You could also do some simple hashing to generate a variation value from the tile's position if you're really keen to save memory.)</p>
+
+<h2>Tile Picking</h2>
+<p>Putting that all together we get the code to generate a tileIndex from our map.</p>
+<pre><code>if (typeIndex === WALLTOP) {
+   tileIndex = calcTileIndexFull(
+      tileMap.isWallTop(x, y - 1),
+      tileMap.isWallTop(x - 1, y),
+      tileMap.isWallTop(x, y + 1),
+      tileMap.isWallTop(x + 1, y)
+   );
+}
+else if (typeIndex == WALLSIDE) {
+   tileIndex = calcTileIndexSide(
+      tileMap.isAnyWall(x - 1, y),
+      tileMap.isAnyWall(x + 1, y)
+   );
+   if (tileIndex === 3) {
+      // we have multiple versions of WALLSIDE 3, pick one
+      tileIndex += Math.floor(randomVariation * WALLSIDE_FLAT_VARIATION_COUNT);
+   }
+}
+else { // floor
+   // there are multiple versions of FLOOR tiles, pick one
+   tileIndex = Math.floor(randomVariation * FLOOR_VARIATION_COUNT);
+}</code></pre>
+
+<p>To draw the tile we use the same function as in the original article, but with the y source position decided by the <code>typeIndex</code> which simply selects which row from the tilesheet we want to pick from.</p>
+<pre><code>function draw(context, typeIndex, tileIndex, x, y) {
+   xStart = tileIndex * TILESIZE;
+   yStart = typeIndex * TILESIZE;
+   context.drawImage(sheetImage,
+      xStart, yStart,
+      TILESIZE, TILESIZE,
+      x, y,
+      TILESIZE, TILESIZE
+   );
+}</code></pre>
+
+<img class="pixel" id="tile-sheet" src="/article-data/dungeon-tiles/tileSheet.png">
+
+    </article>
+</body>
+</html>

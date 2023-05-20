@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Refraction in a Sphere</title>
+    <meta name="description" content="Introducing the basics of ray tracing to create a refraction effect in Unity.">
+    <meta name="sort" content="1970-01-09">
+</head>
+
+<body>
+    <article>
+        <p>A classic demonstration of ray traced rendering is a distorted image caused by refraction. The effect can be
+            reproduced without needing the expense of ray tracing through the whole scene. Just as reflections on glossy
+            surfaces can be approximated by sampling a cubemap of the surrounding scene, we can do the same with
+            refraction.</p>
+
+        <img src="/article-data/refraction-sphere/headerSphere.png"
+            alt="Computer generated image of a glass sphere in a simple scene. The surrounding scene can be seen in the sphere through a combination of reflection and refraction."
+            width="1189" height="699">
+
+        <h1>When the fastest thing in the universe slows down</h1>
+
+        <p>You might have heard the speed of light talked about as a constant, but more accurately it's the speed of
+            light in a vacuum that's constant. Light travels slower through other materials and that change in speed can
+            cause a change in the light's direction, called refraction. The distortion when looking through curved glass
+            or the bend that appears in a straight stick when it's partially underwater are both caused by refraction.
+        </p>
+
+        <p>When going from a higher speed medium to a lower speed medium, light bends towards the surface's normal.
+            Likewise going from lower speed to higher speed bends light away from the surface's normal. We call the
+            surface where two mediums meet an <b>interface</b>. It can be useful to think of one side of a wave crossing
+            the interface first, forcing the wave to change direction to adjust to the difference in speed over its
+            width.</p>
+
+        <p>How much slower light travels in a medium can be represented by that medium's <b>refractive index</b>. By
+            definition vacuum has a refractive index of exactly <code>1</code>. Glass has a refractive index of about
+            <code>1.52</code>, meaning the speed of light within glass is <code>c ÷ 1.52</code>. That's a significant
+            reduction in speed! Air has a refractive index of around <code>1.000293</code>, and so long as no physicists
+            are looking you can pretend it's <code>1</code>. You'll notice some "about"s sprinkled in there, that's
+            because the reflective index varies with things like pressure and humidity. This is what causes visible heat
+            haze effects above very hot objects.
+        </p>
+
+        <p>The refractive effect is also different depending on the light's frequency. This is what causes
+            <b>dispersion</b>, where a beam of white light can be split into its component colours due to the different
+            frequencies getting refracted by different amounts. As is often the case how many of these effects you want
+            to model, fake, or ignore in your rendering systems is up to you.
+        </p>
+
+        <h1>Air to glass</h1>
+
+        <!-- script shared between all demos on this page -->
+        <script defer="true" src="/article-data/refraction-sphere/refractionDemo.js"></script>
+
+        <noscript>
+            <!-- if javascript is disabled hide the canvas that we can't use -->
+            <style>
+                #intoGlassCanvas {
+                    display: none;
+                }
+
+            </style>
+            <img src="/article-data/refraction-sphere/fallbackAirToGlass.png" width="512" height="512"
+                alt="Diagram of a light ray entering a flat glass surface. The ray is bent towards the surface's normal when passing into the glass medium. A smaller ray is seen reflected off the surface.">
+            <p class="warning">Javascript is disabled or unavailable in your browser so the interactive demo can't be
+                shown.</p>
+        </noscript>
+
+        <canvas id="intoGlassCanvas" width="512" height="512">
+            <!-- fallback content, in this case shown if js enabled but not canvas -->
+            <img src="/article-data/refraction-sphere/fallbackAirToGlass.png"
+                alt="Diagram of a light ray entering a flat glass surface. The ray is bent towards the surface's normal when passing into the glass medium. A smaller ray is seen reflected off the surface."
+                width="512" height="512">
+            <p class="warning">Canvas rendering is disabled or unavailable in your browser so the interactive demo can't
+                be shown.</p>
+        </canvas>
+
+        <p>The above diagram is a simple simulation of a light ray moving from the air on the left into a glass block on
+            the right. Click (or touch) on the left area to change the angle of the incident ray. At the interface of
+            the two mediums its speed changes, and unless it hits the surface straight on that will cause its
+            transmission path to be bent.</p>
+
+        <p>How much the transmission ray is bent away from the incident ray's path is determined by <b>Snell's Law</b>.
+        </p>
+        <p>η₁sin(θ₁) = η₂sin(θ₂)</p>
+        <p>Where η₁ is the refractive index of the medium on the incident side; θ₁ is the angle between the surface
+            normal and the incident ray; η₂ is the refractive index of the medium the ray is entering; and θ₂ is the
+            angle between the surface normal and the transmission ray on the other side of the interface.</p>
+
+        <p>You can also see some of the light doesn't get through the interface and is instead reflected off back into
+            the air. How much is reflected instead of refracted depends on the refractive indices of the mediums and on
+            the incident angle. Try moving the ray so that it is almost parallel to the surface and you'll see almost
+            all the ray is reflected. This increase in reflection at grazing angles is commonly known as the
+            <b>Fresnel</b> term in lighting equations, and a simplified form (without refractive indices) is often used
+            when rendering opaque objects.
+        </p>
+
+        <aside>
+            <p>Augustin-Jean Fresnel (1788 - 1827) was a French physicist who greatly advanced the wave theory of light
+                and, among many other discoveries, invented the ridged lenses which bare his name. English speakers may
+                want to note that Fresnel's name is prounounced with the "s" sound almost totally absent: closer to
+                "Fren-el" than "Fres-nel." Everyone should note that getting elitist about pronunciation is a bad look.
+            </p>
+        </aside>
+
+        <h1>Glass to air</h1>
+        <noscript>
+            <!-- if javascript is disabled hide the canvas that we can't use -->
+            <style>
+                #intoAirCanvas {
+                    display: none;
+                }
+
+            </style>
+            <img src="/article-data/refraction-sphere/fallbackGlassToAir.png" width="512" height="512"
+                alt="Diagram of a light ray leaving a flat glass surface. The ray is bent away from the surface's normal when leaving the glass medium.">
+            <p class="warning">Javascript is disabled or unavailable in your browser so the interactive demo can't be
+                shown.</p>
+        </noscript>
+
+        <canvas id="intoAirCanvas" width="512" height="512">
+            <!-- fallback content, in this case shown if js enabled but not canvas -->
+            <img src="/article-data/refraction-sphere/fallbackGlassToAir.png"
+                alt="Diagram of a light ray leaving a flat glass surface. The ray is bent away from the surface's normal when leaving the glass medium."
+                width="512" height="512">
+            <p class="warning">Canvas rendering is disabled or unavailable in your browser so the interactive demo can't
+                be shown.</p>
+        </canvas>
+
+        <p>A ray going from a higher refractive index medium to a lower one follows the same rules, but there's a
+            special case we need to consider. Because the exit ray is rotated away from the surface normal it's possible
+            for the exit angle to be calculated as above 90°, but that wouldn't make sense for a ray that's meant to be
+            leaving the medium. This case is called <b>total internal reflection</b>, and as the name suggests when it
+            happens there's no refraction at all and instead the light ray is wholly reflected.</p>
+
+        <p>Because humans spend most our time in a low refractive index medium (air) we don't see total internal
+            reflection as commonly as other effects of refraction. If you've looked up when underwater and seen that the
+            water's surface appears mirror-like then you've seen total internal reflection. On a smaller scale you may
+            be able to see it when peering into a glass of water from certain angles if the container is shaped
+            correctly.</p>
+
+        <h1>Follow that light ray</h1>
+
+        <p>The basic principle of ray tracing is that you create a ray (or several) for each display pixel and follow it
+            through the scene to work out what colour that pixel should be. Generally this is slower than the
+            rasterisation techniques normally used in real-time graphics. So rather than doing it for the whole scene
+            we'll be doing it just for one object that we want to have pretty refraction effects. We'll follow the ray
+            from the eye through the object, but once the ray leaves the object instead of tracing what other objects or
+            lights it hits in the scene we'll just sample a cubemap representation of the surrounding scene.</p>
+
+        <p>Spheres are firm favourites for ray tracing because they're simple to define mathematically. The surface of a
+            sphere is where the distance from its origin is equal to the sphere's radius. How far is a point from the
+            sphere's surface? Find the distance to the sphere's origin and subtract the radius. What's the surface
+            normal at a point on the sphere? Just take the vector from the sphere's origin to that point and normalize
+            it.</p>
+
+        <p>The actual mesh that we render with doesn't need to be a sphere, all it needs is to cover the area where we
+            want the sphere to appear. Let's use the example of a simple cube and see how we'd design a shader so that a
+            sphere appears within it.</p>
+
+        <noscript>
+            <!-- if javascript is disabled hide the canvas that we can't use -->
+            <style>
+                #circleInBoxCanvas {
+                    display: none;
+                }
+
+            </style>
+            <img src="/article-data/refraction-sphere/fallbackCircleInBox.png" width="512" height="300"
+                alt="Diagram of a ray leaving an eye and passing through a box. Within the box is a circle indicated with a dotted line. Points are marked where the ray crosses that circle.">
+            <p class="warning">Javascript is disabled or unavailable in your browser so the interactive demo can't be
+                shown.</p>
+        </noscript>
+        <canvas id="circleInBoxCanvas" width="512" height="300">
+            <!-- fallback content, in this case shown if js enabled but not canvas -->
+            <img src="/article-data/refraction-sphere/fallbackCircleInBox.png"
+                alt="Diagram of a ray leaving an eye and passing through a box. Within the box is a circle indicated with a dotted line. Points are marked where the ray crosses that circle."
+                width="512" height="300">
+            <p class="warning">Canvas rendering is disabled or unavailable in your browser so the interactive demo can't
+                be shown.</p>
+        </canvas>
+
+        <p>You can click (or touch) the diagram above to change the ray's direction. The box represents the surface of
+            the mesh, with the sphere we want to draw floating within. We can do a bit of maths to find when the ray
+            will touch the sphere's surface, with the resulting positions from that shown as dots in the diagram.</p>
+
+        <p>I find it convenient to think of rays as being like a particle that moves through the scene (the ray actually
+            moves instantly, "time" is just a nice way to reason about how the ray travels.) We can call its starting
+            position <i>s</i>, its velocity <i>v</i>, which means its position at time <i>t</i> is:</p>
+        <p><i>rayPosition(t) = s + vt</i></p>
+        <p>For convenience we'll use the sphere's center as the origin point, meaning postions are given relative to
+            there. So the ray hits the surface of a sphere with radius of <i>r</i> when:</p>
+        <p><i>length(rayPosition(t)) = r</i></p>
+        <p>From the Pythagorean theorem we know how to find the length of a vector:</p>
+        <p><i>√(rayPosition(t) · rayPosition(t)) = r</i></p>
+        <p>We can square both sides to get rid of the square root, and sub in for rayPosition:</p>
+        <p><i>(s + vt) · (s + vt) = r²</i></p>
+        <p>A bit of multiplying out and rearranging we end up with this quadratic for t:</p>
+        <p><i>(v · v)t² + 2(v · s)t + (s · s) - r² = 0</i></p>
+        <p>This can be solved using the quadratic equation. We'll get no solutions when the ray misses the sphere
+            entirely, two identical solutions if the ray perfectly skims the sphere, and two different solutions when it
+            passes through the sphere hitting the surface on the way in and the way out.</p>
+
+        <h1>Sphere in a shader</h1>
+        <p>With the maths sorted out for ray-vs-sphere we can make a shader using it. The principles here apply to any
+            system but we'll demonstrate it in Unity's universal render pipeline (URP) and the shader graph system.</p>
+
+        <img src="/article-data/refraction-sphere/raySphereSubgraph.png" width="1041" height="524">
+
+        <p>This subgraph is the heart of the shader. You can see how the a, b, and c values are prepared to be fed into
+            the quadratic solver to find the "time" when the ray will hit the sphere's surface. The solutions are then
+            used to get a position for each intersect.</p>
+
+        <img src="/article-data/refraction-sphere/quadraticSubgraph.png" width="411" height="141">
+        <p>The <i>solve quadratic</i> subgraph is just a wrapper for a custom node. The function could be expressed in
+            shader graph nodes, but I find it adds needless complexity for what's fairly simple when expressed in code:
+        </p>
+        <pre><code>float s = sqrt(b * b - 4 * a * c);
+    HasRealSolution = s &gt; 0.0 &amp;&amp; a != 0.0;
+    x1 = (-b + s) / (2 * a);
+    x2 = (-b - s) / (2 * a);</code></pre>
+
+        <img src="/article-data/refraction-sphere/rayPositionSubgraph.png" width="492" height="172">
+        <p><i>Ray position at time</i> is calculated simply enough and just as you'd expect. Having even simple
+            operations like this put into a subgraph will save a bit of time and more importantly makes it clearer
+            what's going on within a complex graph.</p>
+
+        <img src="/article-data/refraction-sphere/raytraceSphereGraph.png" width="492" height="172">
+        <p>Finally, here's the actual shader graph. Notice that both the camera position and the view direction are in
+            object space, meaning they'll be given in terms relative to where the object in the scene is. That means a
+            position of (0, 0, 0) will be in the center of our sphere. We flip the view direction vector because the
+            node gives us a direction from the fragment towards the camera, but our ray should be directed out of the
+            camera. Speaking of which, we have the ray's initial position set to be the camera but it works just as well
+            to use the fragment's position on the surface of the mesh.</p>
+
+        <img src="/article-data/refraction-sphere/positionOnSphere.png" width="463" height="448">
+        <p>The output is hooked up to represent the position of the ray intersection closest to the camera. You can see
+            how the surface is more blue in the +z direction and more green in the +y direction. This is a screenshot
+            from within Unity's editor, with a glowing orange outline around the cube mesh that's actually being
+            rendered. The appearance of a sphere is thanks to our shader, not the mesh.</p>
+
+        <p>You might also notice we could have just used a sphere mesh and rendered it with a far simpler shader to get
+            a very similar output. The point of all this is that we'll be able to use the same technique to know how any
+            arbitrary ray would hit the sphere, not just one coming straight from the camera.</p>
+
+        <h1>Through the looking-sphere</h1>
+        <noscript>
+            <!-- if javascript is disabled hide the canvas that we can't use -->
+            <style>
+                #circleRefractCanvas {
+                    display: none;
+                }
+
+            </style>
+            <img src="/article-data/refraction-sphere/fallbackCircleRefract.png" width="512" height="300"
+                alt="Diagram of a light ray being refracted by a circle of glass. The ray enters near the top of the circle where it is bent downwards. When the ray exits it is again bent downwards, producing a significant change in direction from the original ray.">
+            <p class="warning">Javascript is disabled or unavailable in your browser so the interactive demo can't be
+                shown.</p>
+        </noscript>
+        <canvas id="circleRefractCanvas" width="512" height="300">
+            <!-- fallback content, in this case shown if js enabled but not canvas -->
+            <img src="/article-data/refraction-sphere/fallbackCircleRefract.png"
+                alt="Diagram of a light ray being refracted by a circle of glass. The ray enters near the top of the circle where it is bent downwards. When the ray exits it is again bent downwards, producing a significant change in direction from the original ray."
+                width="512" height="300">
+            <p class="warning">Canvas rendering is disabled or unavailable in your browser so the interactive demo can't
+                be shown.</p>
+        </canvas>
+
+        <p>Again you can click (or touch) this diagram to change the ray's direction. By combining our understanding of
+            how refraction bends light rays and how to perform ray-vs-sphere collision, we can now trace a ray as it
+            gets refracted through a sphere. For simplicity this diagram ignores reflection and just shows the part of
+            the ray that will get refracted.</p>
+
+        <p>There are a few interesting properties you can notice here. A ray directed straight at the sphere will pass
+            through unbent. The change in angle as a ray enters is exactly the same as the change as it leaves—this is a
+            property particular to spheres. Because of that relationship between entry and exit rays total internal
+            reflection can never occur in a sphere with a higher-than-surroundings refractive index.</p>
+
+        <p>Our shader is already finding the position on the sphere surface where the ray from the eye intersects, we
+            can combined with with the surface normal and the material's index of refraction to find where the refracted
+            ray will go. You'll recall from earlier that finding the normal of a sphere is wonderfully simple.</p>
+
+        <img src="/article-data/refraction-sphere/normalOfSphere.png" width="428" height="92">
+
+        <p>So long as we're working in object space with the sphere at the origin of that space it's just a case of
+            normalizing the position vector. If the sphere were offset from the origin it just takes a subtraction to
+            properly offset the position vector.</p>
+
+        <img src="/article-data/refraction-sphere/refractSubgraph.png" width="798" height="220">
+
+        <p>Usefully HLSL has a built-in <code>refract</code> function so we can just wrap that up in a custom node. To
+            handle the total internal reflection case, the built-in function returns <code>(0, 0, 0)</code>. Our
+            wrapping node can detect that and provide a boolean:</p>
+        <code>Refracted = refract(Direction, SurfaceNormal, RefractiveIndex);
+    TotalInternalReflection = (Refracted == float3(0.0, 0.0, 0.0));</code>
+
+        <img src="/article-data/refraction-sphere/cubemapSubgraph.png" width="421" height="148">
+
+        <p>Unity's shader graph provides a <i>Sample Cubemap</i> node but it's set up to reflect the direction vector
+            you give it. Although we could work around that, it's simple enough to wrap a custom function and make our
+            own cubemap sampler:</p>
+        <code>Out = SAMPLE_TEXTURECUBE_LOD(Cube, Sampler, Direction, LoD);</code>
+
+        <a href="refractSphereGraph.png"><img
+                src="/article-data/refraction-sphere/refractSphereGraph.png" width="2481" height="807"></a>
+        <p>With these new parts we can finally make our sphere refract some rays.</p>
+
+        <p>Following the flow through this graph from the left, we start by finding where the ray hits the sphere. That
+            position is used to find the sphere's normal. That normal is used to refract the ray. We then find where
+            that refracted ray will next hit the sphere. Again we find the normal at that point, and refract again. We
+            take that direction and after transforming it into world space we sample a cubemap representing the scene
+            that surrounds our object.</p>
+
+        <p>We have followed a single ray from the eye through this glass sphere, and found what direction it ends up
+            pointing. We look up what colour the surrounding scene is in that direction and display that.</p>
+
+        <img src="/article-data/refraction-sphere/refractSphere.png"
+            alt="A glass sphere sits on a gridded plane near a red and a blue cube. The plane and cubes can be seen through the glass sphere, flipped and distorted."
+            width="646" height="347">
+
+        <h1>The Scene Cubemap</h1>
+        <p>Something you might notice is that the position our ray leaves the sphere isn't taken into account when we
+            decide what to display. This is not true to life, but is hard to avoid when using a single cubemap to
+            represent the surrounding scene. The cubemap gives us a view of the scene from just one position and all we
+            can do is pick which direction we want to sample. (Depending on the layout of the surrounding scene, the
+            "box projection" method may be useful to partially account for the ray's exit position.)</p>
+
+        <p>It's very common to approximate a surrounding scene using a cubemap when handling reflections on glossy
+            surfaces. In both that case and this only the direction is used and the results are widely accepted. The
+            cubemap method is closest to reality when the rest of the scene is far away from the refracting object and
+            the refracting object is relatively small.</p>
+
+        <p>Our refraction method misses out on a noticeable property of how spheres refract light in reality. If an
+            object is close enough to a glass sphere it will appear distorted but the correct way up. The image of an
+            object should only flip once it has moved a certain distance away. With our cubemap sampling approach that
+            effect is lost and the image through the sphere is always flipped.</p>
+
+        <p>As with reflective objects you'll get the best results if your cubemap is placed close to where the
+            refractive object is. In this case I've simply placed a Unity reflection probe at the origin of the mesh
+            used to render our glass sphere. As with all use of reflection probes keep in mind that constantly updating
+            it can be costly with regards performance, increasing with the probe's resolution and number in the scene.
+        </p>
+
+        <h1>Adding Reflection</h1>
+        <p>Speaking of reflections, we've neglected to deal with the ray being partially reflected when entering the
+            sphere. A ray passing through an interface between mediums with different refractive indices should always
+            be split into two parts. The refracted ray will pass through the interface into the new medium with a
+            changed direction, the reflected ray bounces off the interface back into the medium it entered from. How the
+            colour from these two rays should be mixed is decided by the reflectance value from the Fresnel equation.
+        </p>
+
+        <p>To start with let's just handle the external reflection when the ray first enters the sphere. Unity's shader
+            graph already has a <i>reflect</i> node and we already have the incoming ray's direction together with the
+            sphere's surface normal. But we do need to do some Fresnel-related calculation to know how strong the
+            reflection should be.</p>
+
+        <img src="/article-data/refraction-sphere/fresnelSubgraph.png" width="672" height="165">
+
+        <p>The full Fresnel equations for what happens to light as it passes from one medium to another are complex and
+            deal with things like the polarisation of light (which we're just ignoring.) Instead we can use the
+            <b>Schlick approximation</b>. This gives us a nice reflectance value between 0 and 1 telling us how much
+            priority should be given to the reflected ray. It also deals with total internal reflection, setting
+            reflectance to 1 when that's encountered.
+        </p>
+
+        <pre><code><span class="comment">// approximation of the Fresnel equation for reflectance</span>
+    <span class="comment">// based on https://graphics.stanford.edu/courses/cs148-10-summer/docs/2006--degreve--reflection_refraction.pdf</span>
+    float r0 = (n1 - n2) / (n1 + n2);
+    r0 *= r0;
+
+    float cosX = abs(dot(normal, rayDirection));
+
+    if (abs(cosX) &lt; 0.0001)
+    {
+        reflectance = 1.0;
+        return;
+    }
+
+    if (n1 &gt; n2)
+    {
+        float n = n1 / n2;
+        float sinT2 = n * n * (1.0 - cosX * cosX);
+
+        <span class="comment">// detect total internal reflection</span>
+        if (sinT2 &gt; 1.0)
+        {
+            reflectance = 1.0;
+            return;
+        }
+
+        cosX = sqrt(1.0 - sinT2);
+    }
+
+    float x = 1.0 - cosX;
+
+    <span class="comment">// chained multiply is (probably) faster than pow(x, 5)</span>
+    reflectance = r0 + (1.0 - r0) * x*x*x*x*x;</code></pre>
+
+        <p>Although this is very close to physically accurate don't be afraid of adding in the ability to arbitrarily
+            adjust things. Providing a slider whose value is added to this reflectance value makes tweaking an asset to
+            get the right look far easier. Even if your goal is to make images that look real, that's not always the
+            same thing as them being totally physically accurate.</p>
+
+        <a href="surfaceFresnelGraph.png"><img
+                src="/article-data/refraction-sphere/surfaceFresnelGraph.png" width="1326" height="524"></a>
+
+        <p>This reflection handling is added into our existing shader graph. A <i>Lerp</i> node blends between the view
+            from the reflected ray and the view from the refracted ray depending on the calcualted reflectance value.
+        </p>
+
+        <img src="/article-data/refraction-sphere/refractSurfaceReflectSphere.png"
+            alt="A glass sphere sits on a gridded plane near a red and a blue cube. The plane and cubes can be seen through the glass sphere, flipped and distorted. Towards the edges of the sphere there's a faint reflection of the surrounding scene."
+            width="646" height="347">
+
+        <p>The addition of a surface reflection goes a long way to help the sphere feel like it's part of the scene.</p>
+
+        <h1>Internal reflection</h1>
+
+        <p>When a ray leaves our sphere it should be split in two, with one of those being reflected back into the
+            sphere. That ray will hit the sphere again somewhere else, where it again should be split in two with one
+            reflected back into the sphere. That pattern continues forever and for each bounce the reflected ray is
+            contributing less to the final displayed colour. We can decide on some number of bounces to trace before
+            assuming the result is close enough to reality.</p>
+
+        <p>To model the many internal bounces in our shader let's put the process for tracing the ray into a subgraph
+            that we can repeatedly use.</p>
+
+        <a href="internalBounceSubgraph.png"><img
+                src="/article-data/refraction-sphere/internalBounceSubgraph.png" width="1506" height="475"></a>
+
+        <p>Given a ray, the sphere's radius (with the assumption the sphere's origin is at <code>(0,0,0)</code>), and
+            the refractive indices of the mediums, this finds where the ray will exit the sphere and the direction of
+            the reflective and refractive rays that it'll split into, as well as the reflectance value used to mix the
+            colours from the rays. We can repeatedly use this subgraph to trace multiple bounces around the inside of
+            our sphere.</p>
+
+        <a href="multipleBouncesGraph.png"><img
+                src="/article-data/refraction-sphere/multipleBouncesGraph.png" width="1117" height="600"></a>
+
+        <p>The first use of the subgraph is following a ray after it enters the sphere, with the position it tries to
+            leave the sphere and the reflected direction used to trace another ray. Each iteration leads to another
+            sampling of the scene cubemap for the split off ray that exits the sphere. It's easy enough to repeat this
+            process as many times as we like, but with the awareness that each iteration is going to increase the
+            rendering cost. Let's try out a few different iteration counts.</p>
+
+        <img src="/article-data/refraction-sphere/reflectionCompare.png"
+            alt="An animated set of images comparing rendering the sphere with 0, 1, 2, or 3 sets of reflections. The visible difference between 2 and 3 is minimal."
+            width="683" height="462">
+
+        <p>You can see that each additional bounce changes the final image less than the previous one, despite causing
+            the same increase in shader complexity. There's obviously a balance to be struck here.</p>
+
+        <h1>Summary</h1>
+        <p>We've gone through a basic introduction to both the principles of ray tracing and refraction. By
+            understanding the mathematics of how a ray is affected by passing through the interface between two mediums
+            we've been able to create a shader that traces rays through a sphere and out into the surrounding scene.
+            We've seen that we can use a cubemap to represent the surrounding scene as an alternative to needing to
+            trace the ray through the whole scene (with some caveats about its accuracy.) Putting that all together we
+            made a scene that looks straight out of a rendered computer graphics image from the late 1980s.</p>
+
+        <p>There's a lot of room to expand from here! The material of this sphere currently isn't absorbing or
+            scattering any light, and there's no dispersion causing colours to separate. The techniques used here can
+            also be extended to handle shapes which aren't just spheres. I plan to cover at least some of these in the
+            near future. I'm particularly pleased with a technique to approximate refraction through an arbitrary convex
+            mesh.</p>
+
+        <p class="download">The example project can be <a
+                href="SphereRefraction.zip">downloaded directly as a .zip</a> or
+            found on <a href="https://github.com/Anatta336/sphere-refraction">GitHub</a>. As usual with Unity projects
+            you'll need to do a little ritual after downloading. When you first open the project it'll take a few
+            minutes to build the local library. You'll then need to Open Scene to open the actual sample scene in the
+            project (Unity silently generates a default start scene and shows you that instead.) To be safe you may need
+            to restart Unity too.</p>
+    </article>
+</body>
+</html>

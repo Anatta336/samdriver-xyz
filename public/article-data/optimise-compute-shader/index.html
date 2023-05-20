@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Optimising a Compute Shader</title>
+    <meta name="description" content="Using RenderDoc to help find a faster compute shader for the simple lens flare effect">
+    <meta name="sort" content="1970-01-08">
+</head>
+
+<body>
+    <article>
+<p>Following on from <a href="/article/compute-shader-intro">a previous article on creating simple lens flare effects using compute shaders</a> we can get some help from RenderDoc to find a faster version of that shader.</p>
+
+<h1>The Goal</h1>
+<p>We're given a large texture and want to find the brightest pixel within each 8x8 square over the image, but only if it's over a certain luminance threshold. Previously we created a compute shader that achieves that, but it felt like it had room to improve.</p>
+
+<h1>Starting Point</h1>
+<p>Our previous shader uses a thread group size of 8&times;8, with each thread accessing the colour at its location and calculating its luminance. Then one of the threads goes through all those results to find the brightest. Here's the code for the important part:</p>
+
+<pre><code>#define GROUP_SIZE 8
+groupshared BrightPoint cachedPoint[GROUP_SIZE][GROUP_SIZE];
+
+#pragma kernel FindBrights
+[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
+void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_GroupThreadID)
+{
+  // every thread samples one texel
+  float3 colour = _sourceTexture[globalId.xy];
+  float luminance = CalculateLuminance(colour);
+
+  // and stores the result in groupshared memory
+  cachedPoint[localId.x][localId.y] = MakeBrightPoint(
+    globalId.xy, colour, luminance
+  );
+  GroupMemoryBarrierWithGroupSync();
+
+  // all but one thread stops here
+  if (!(localId.x == 0 && localId.y == 0))
+  {
+    return;
+  }
+
+  // one thread finds the highest luminance in the group.
+  bool foundBright = false;
+  BrightPoint brightest = MakeBrightPoint(
+    int2(0,0), float3(0,0,0), _luminanceThreshold
+  );
+  for (int y = 0; y < GROUP_SIZE; ++y)
+  for (int x = 0; x < GROUP_SIZE; ++x)
+  {
+    if (cachedPoint[x][y].luminance > brightest.luminance)
+    {
+      foundBright = true;
+      brightest = cachedPoint[x][y];
+    }
+  }
+
+  if (foundBright)
+  {
+    _brightPoints.Append(brightest);
+  }
+}</code></pre>
+<p>Measured performance: <b>360&micro;s</b></p>
+
+<p>The weakness is that for a significant amount of execution time only one of the threads in each group is doing anything useful. GPUs are really good at running lots of threads at once, so we may be squandering the hardware's potential here.</p>
+
+<h1>The Measure of a Shader</h1>
+<p>To accurately compare implementation we need to be able to measure their performance. It's very hard to do that accurately from the CPU side. You could try to use Unity's profiling tools or make your own version measuring the time before after after calling <code>Dispatch</code>. But this doesn't give accurate information on how long the shader itself is taking to complete. The shader might not have started running when you get to the <code>EndSample()</code> line. The CPU and GPU really are separate pieces of hardware and don't operate in lockstep.</p>
+
+<pre><code>// this wouldn't give accurate measurements for the shader
+Profiling.Profiler.BeginSample("Compute for finding brights");
+brightsCompute.Dispatch(...);
+Profiling.Profiler.EndSample();
+</code></pre>
+
+<img class="right" src="/article-data/optimise-compute-shader/renderDocLaunch.png" alt="Screenshot of selecting the Launch Application option from RenderDoc's File menu." width="251" height="353">
+
+<p>Instead we'll be using <a href="https://renderdoc.org/">RenderDoc</a> to let us poke around at what is happening on the graphics card, at least on an abstracted level. To get started we'll need to make a standalone build of our "game" from within Unity, then launch it through RenderDoc. Once Unity is done building, select Launch Application from RenderDoc's File menu. Over on the right of the window you should see a field to select your executable. The other options can generally be left as-is, so just click Launch.</p>
+
+<img src="/article-data/optimise-compute-shader/renderDocExecutable.png" alt="Screenshot of RenderDoc's interface for selecting an executable path. It has been used to select BrightSpot.exe" width="507" height="144">
+
+<p class="aside">You're not limited to putting your own applications through RenderDoc. It can be fiddly to get working on some games, but you can have an interesting time looking at how other people are doing their rendering.</p>
+
+<p>Your game will now run as normal but with a framerate info overlay at the top-left of the display. As that says you can press F12 or PrtSc at any time to record a frame. It's normal for the game to pause for a moment while storing that frame. When you close the game, RenderDoc should have your captured frame(s) ready to examine.</p>
+
+<p>There's a lot of information available from RenderDoc and I'll not even attempt to go through it here. We're just using one feature for now. Over on the left should be the Event Browser that lists in order all the rendering events from the frame you captured. When you click the clock icon RenderDoc will run the events again and use GPU-based timing to measure how long they each take. The result will appear next to each event, measured in &micro;s (each is one millionth of a second, so you can afford to spend 16,666&micro;s on a frame before dropping below 60FPS.) Notice that the measured value will vary a bit each time you click, so it's good to take a few measurements and average them.</p>
+
+<img src="/article-data/optimise-compute-shader/renderDocEventBrowser.png" alt="Screenshot of RenderDoc's Event Browser interface. The clock icon is highlighted" width="603" height="269">
+
+<p>In this case there's just one <code>Dispatch</code> event so that must be the compute shader we're interested in. But you can check by selecting that event, then looking in the Pipeline State tab. You can click the large CS icon near the top of that to see details on what the Compute Shader is doing. In this case it shows that it has a 1920&times;1080 texture (the source image we're searching for bright points) and a <code>RWStructuredBuffer</code> (the append buffer we'll write any bright points to.) We can also confirm that it's the <code>FindBrights</code> kernel in the <code>BrightsToBuffer</code> shader file. Try clicking around, you'll find you can see what data was in the buffer, what the texture looked like, and read a decompiled version of the shader.</p>
+
+<img src="/article-data/optimise-compute-shader/renderDocPipelineState.png" alt="Screenshot of RenderDoc's Pipeline State interface while our compute shader's dispatch event is selected" width="715" height="547">
+
+<h1>Multiple Samples per Thread</h1>
+<p>Now that we can measure performance let's try some alternative algorithms for finding bright pixels.</p>
+
+<p>We were concerned about wasting resources by having idle threads so let's make a version that keeps every thread busy. Each thread will examine a complete 8&times;8 area on its own. As before here's the core of the code:</p>
+
+<pre><code>#define GROUP_SIZE 32
+#define REGION_PER_THREAD 8
+
+#pragma kernel FindBrights
+[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
+void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_GroupThreadID)
+{
+  BrightPoint brightest = MakeBrightPoint(int2(0,0), float3(0,0,0), _luminanceThreshold);
+  bool foundBright = false;
+
+  // every thread examines a square of REGION_PER_THREAD x REGION_PER_THREAD texels
+  int xStart = globalId.x * REGION_PER_THREAD;
+  int yStart = globalId.y * REGION_PER_THREAD;
+  for (int y = yStart; y < yStart + REGION_PER_THREAD; ++y)
+  for (int x = xStart; x < xStart + REGION_PER_THREAD; ++x)
+  {
+    float3 colour = _sourceTexture[int2(x, y)];
+    float luminance = CalculateLuminance(colour);
+    if (luminance > brightest.luminance)
+    {
+      brightest = MakeBrightPoint(int2(x, y), colour, luminance);
+      foundBright = true;
+    }
+  }
+  if (foundBright)
+  {
+    _brightPoints.Append(brightest);
+  }
+}</code></pre>
+<p>Measured performance: <b>900&micro;s</b></p>
+
+<p>It's quite a lot slower. It was reasonable to think this could work as we're not idling threads and don't need to worry about syncing between threads. But it seems that doesn't make up for the time it takes to serially access a texture 64 times. It pays to test.</p>
+
+<p>I suspect the problem here is we're messing up texture cache coherence. When in doubt blame cache coherence. The ideal way to access a texture multiple times is to access texels close to one another. Usually nearby texels are pulled into the texture cache along with the one you actually read from. But in this case we have each thread accessing a texel at least 8 away from where any of the other threads are accessing. Keep in mind the other threads are accessing the texture at the same time. If the texture cache is big enough that wouldn't be a problem, but I suspect we're not in that situation.</p>
+
+<h1>Shared Search</h1>
+<p>Now let's go back to something closer to the original design so each thread is dealing with just one texel. But now we'll try to share out the task of finding the brightest pixel. Instead of having just one thread do it alone we can at least have some others help.</p>
+
+<img class="right" src="/article-data/optimise-compute-shader/strideProcess.png" width="461" height="239" alt="A diagram showing a set of pixels cascading
+down through several stages of comparisons until the brightest is found. It's hard to describe in text, sorry.">
+<p>As a first step we can have all the even numbered threads (0, 2, 4, 6, ...) compare their brightness to the thread on their right. If their neighbour's point is brighter, use it to replace our own. We now know that the brightest pixel in the whole row is definitely in one of the even numbered threads. We can repeat that process but using just half of those threads (0, 4, ...) and now looking at the neighbour from the previous stage.</p>
+
+<p>Each repeat of the process cuts down the active threads by half until there's just one left. Once that last iteration is complete we know thread 0 will have the brightest in it. That will have found the brightest point in each row. We can repeat the same process to now find the brightest of those rows. It may not feel as intuitive to understand as having just one thread look through everything, but it does keep much more of the threads doing useful work.</p>
+
+<pre><code>#define GROUP_SIZE 8
+groupshared BrightPoint cachedPoint[GROUP_SIZE][GROUP_SIZE];
+
+#pragma kernel FindBrights
+[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
+void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_GroupThreadID)
+{
+  // every thread samples one texel
+  float3 colour = _sourceTexture[globalId.xy];
+  float luminance = CalculateLuminance(colour);
+
+  cachedPoint[localId.x][localId.y] = MakeBrightPoint(
+    globalId.xy, colour, luminance
+  );
+  GroupMemoryBarrierWithGroupSync();
+
+  // Rather than having just one thread do the search, share the work somewhat.
+  // There will still be at least 50% of threads inactive during this, with the
+  // higher stride values having more inactive threads
+  uint stride;
+  for (stride = 2; stride <= GROUP_SIZE; stride *= 2)
+  {
+    if ((localId.x % stride) == 0)
+    {
+      if (cachedPoint[localId.x + stride / 2][localId.y].luminance >
+          cachedPoint[localId.x][localId.y].luminance)
+      {
+        cachedPoint[localId.x][localId.y] = cachedPoint[localId.x + stride / 2][localId.y];
+      }
+    }
+    GroupMemoryBarrierWithGroupSync();
+  }
+  // brightest in each row is now [0] of that row
+
+  for (stride = 2; stride <= GROUP_SIZE; stride *= 2)
+  {
+    if (localId.x == 0 && (localId.y % stride) == 0)
+    {
+      if (cachedPoint[0][localId.y + stride / 2].luminance >
+          cachedPoint[0][localId.y].luminance)
+      {
+        cachedPoint[0][localId.y] = cachedPoint[0][localId.y + stride / 2];
+      }
+    }
+    // group sync must be outside of any conditionals, every thread need to reach it
+    GroupMemoryBarrierWithGroupSync();
+  }
+  // brightest in whole group is now in [0][0]
+
+  // final step is always only done on one thread
+  if (localId.x == 0 && localId.y == 0)
+  {
+    BrightPoint brightest = cachedPoint[0][0];
+    if (brightest.luminance > _luminanceThreshold)
+    {
+      _brightPoints.Append(brightest);
+    }
+  }
+}</code></pre>
+<p>Measured performance: <b>200&micro;s</b></p>
+
+<p>A slight gain! Although half the threads are wasted for the whole search process it still shares out the work and gets it done a little faster than the original. The improvement should be greater for large thread group sizes too.</p>
+
+<h1>Why Not Both?</h1>
+<p>Trying to sample the whole 8&times;8 area in each thread didn't work out, but I feel hopeful we can do something useful with cache coherency. This version will have each thread sample a few (nearby) texels, find their brightest, store that, and then we do the group-wide search on that smaller set of bright pixels.</p>
+
+<pre><code>#define GROUP_SIZE 4
+#define REGION_PER_THREAD 2
+
+#pragma kernel FindBrights
+[numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
+void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_GroupThreadID)
+{
+  // every thread examines a square of REGION_PER_THREAD x REGION_PER_THREAD texels
+  BrightPoint brightest = MakeBrightPoint(int2(0,0), float3(0,0,0), _luminanceThreshold);
+  int xStart = globalId.x * REGION_PER_THREAD;
+  int yStart = globalId.y * REGION_PER_THREAD;
+  for (int y = yStart; y < yStart + REGION_PER_THREAD; ++y)
+  for (int x = xStart; x < xStart + REGION_PER_THREAD; ++x)
+  {
+    float3 colour = _sourceTexture[int2(x, y)];
+    float luminance = CalculateLuminance(colour);
+    if (luminance > brightest.luminance)
+    {
+      brightest = MakeBrightPoint(int2(x, y), colour, luminance);
+    }
+  }
+
+  cachedPoint[localId.x][localId.y] = brightest;
+  GroupMemoryBarrierWithGroupSync();
+
+  // search for brightest in each row
+  uint stride;
+  for (stride = 2; stride <= GROUP_SIZE; stride *= 2)
+  {
+    if ((localId.x % stride) == 0)
+    {
+      if (cachedPoint[localId.x + stride / 2][localId.y].luminance >
+          cachedPoint[localId.x][localId.y].luminance)
+      {
+        cachedPoint[localId.x][localId.y] = cachedPoint[localId.x + stride / 2][localId.y];
+      }
+    }
+    GroupMemoryBarrierWithGroupSync();
+  }
+  // brightest in each row is now [0] of that row
+
+  for (stride = 2; stride <= GROUP_SIZE; stride *= 2)
+  {
+    if (localId.x == 0 && (localId.y % stride) == 0)
+    {
+      if (cachedPoint[0][localId.y + stride / 2].luminance >
+          cachedPoint[0][localId.y].luminance)
+      {
+        cachedPoint[0][localId.y] = cachedPoint[0][localId.y + stride / 2];
+      }
+    }
+    // group sync must be outside of any conditionals, even the idle threads need to reach it
+    GroupMemoryBarrierWithGroupSync();
+  }
+  // brightest in whole group is now in [0][0]
+
+  // final step is always only done on one thread as want to add at most one to _brightPoints
+  if (localId.x == 0 && localId.y == 0)
+  {
+    BrightPoint brightest = cachedPoint[0][0];
+    if (brightest.luminance > _luminanceThreshold)
+    {
+      _brightPoints.Append(brightest);
+    }
+  }
+}</code></pre>
+<p>Measured performance: <b>110&micro;s</b></p>
+
+<p>I think that's about as good as we'll get for now. We can try tweaking the <code>REGION_PER_THREAD</code> and <code>GROUP_SIZE</code> values, but at least on this machine we're at the optimal balance. You might notice that as <code>GROUP_SIZE</code> is now <code>4</code> those search loops only iterate through twice. It's tempting to manually unroll them, as "everyone knows" conditionals and loops are bad for shaders. Fortunately you can add <code>[unroll]</code> immediately before a <code>for</code> loop and the compiler will do that work for us without making our code harder to maintain. Even more fortunately the compiler seems to do a decent job of judging when to automatically unroll loops even without prompting. Thanks, compilers.</p>
+
+<video width="675" height="452" autoplay loop poster="/article-data/optimise-compute-shader/scene-675x452.png">
+	<source src="/article-data/optimise-compute-shader/scene-675x452.webm" type='video/webm; codecs="vp9.0, vorbis"'>
+  <img src="/article-data/optimise-compute-shader/scene-675x452.png" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit star shaped lens flares." width="488" height="468">
+</video>
+
+<p class="download">The base project is available via the <a href="/article/compute-shader-intro">original article</a>. A variation with each of these alternate shaders are available as branches on the GitHub project. The version with <a href="https://github.com/Anatta336/bright-spots/tree/multi-sample-no-search">many samples per thread and no cross-thread communication</a>. <a href="https://github.com/Anatta336/bright-spots/tree/single-sample-multi-search">One sample per thread but with shared search</a>. And finally, <a href="https://github.com/Anatta336/bright-spots/tree/multi-sample-multi-search">multiple samples per thread with shared search</a>.</p>
+    </article>
+</body>

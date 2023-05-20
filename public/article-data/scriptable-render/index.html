@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Scriptable Renderer Feature</title>
+    <meta name="description" content="A barebones sample implementation of a scriptable renderer feature for Unity's scriptable render pipeline.">
+    <meta name="sort" content="1970-01-06">
+</head>
+
+<body>
+    <article>
+<p>As the name suggests, a core feature of Unity's scriptable render pipeline (SRP) is that we can write our own features and add them in without needing to make a whole rendering system from scratch. When I was learning how to make use of this I couldn't find a barebones example to build from, so I'll try to provide one here. Unity does allow you to create a Render Feature asset which provides boilerplate code, but it's not clear to a learner how to make that actually do anything.</p>
+
+<img src="/article-data/scriptable-render/splitView.png" width="687" height="460">
+
+<p class="aside">This tutorial is written using Unity <b>2019.3</b> and targetting the universal render pipeline. We'll not use any experimental features so it should continue to work in future versions. If you're using an earlier version you'll likely need to make some changes. It'll not work at all if you're not using one of the scriptable render pipelines, and may need some tweaking for the HDRP.</p>
+
+<h1>Names</h1>
+<style>
+	#rendererNames
+    {
+		max-width: 300px;
+        border-collapse: collapse;
+        background-color: #dbe7eb;
+    }
+    td
+    {
+		border:	solid 1px #a3a3b2;
+		text-align: right;
+		padding: 10px;
+	}
+</style>
+
+<p>
+<table id="rendererNames" class="right">
+  <tr>
+  	<td rowspan="2"><b>SRP</b><br>Scriptable render pipeline</td>
+  	<td><b>URP</b><br>Universal Render Pipeline</td>
+  </tr>
+  <tr>
+  	<td><b>HDRP</b><br>High Definition Render Pipeline</td>
+  </tr>
+  <tr>
+  	<td colspan="2">Built-in Renderer</td>
+  </tr>
+</table>
+</p>
+<p>The scriptable render pipeline (<b>SRP</b>) is what's behind Unity's high definition render pipeline (<b>HDRP</b>) and universal render pipeline (<b>URP</b>) - which was previously known as the lightweight render pipeline (<b>LWRP</b>). Unity projects can still use the built-in renderer which is a separate thing and doesn't use any of this stuff. If you wanted to you could make a joke about how "Unity" isn't very united in its rendering technologies.</p>
+
+<p>Our custom feature will be made up of two classes, one that extends <code>ScriptableRendererFeature</code> and one that extends <code>ScriptableRenderPass</code>. The "pass" is what does the actual rendering work while the "feature" is how it interfaces with the rest of the scriptable pipeline.</p>
+
+<p class="download">If you want a minimal scene with this all set up and working it's available as a <a href="/article-data/scriptable-render/scriptableRender.zip">.zip download</a> or on <a href="https://github.com/Anatta336/scriptable-renderer-feature">GitHub</a>. Unity will take a while to first open the example project as it needs to rebuild the local library. You will also have to manually open the "SampleScene" once the project opens, and may have to restart Unity before it'll properly load everything in.</p>
+
+<h1>Boilerplate</h1>
+<p>Let's jump into the code. We'll create <code>MyBlitFeature.cs</code> and <code>MyBlitRenderPass.cs</code> anywhere within your project's asset folder and paste the code in. It's heavily commented so I'll just pick up on a couple of things to explain separately.</p>
+
+<h2>MyBlitFeature.cs</h2>
+<pre><code>using UnityEngine;
+using UnityEngine.Rendering.Universal;
+
+public class MyBlitFeature : ScriptableRendererFeature
+{
+  [System.Serializable]
+  public class MyFeatureSettings
+  {
+    // we're free to put whatever we want here, public fields will be exposed in the inspector
+    public bool IsEnabled = true;
+    public RenderPassEvent WhenToInsert = RenderPassEvent.AfterRendering;
+    public Material MaterialToBlit;
+  }
+
+  // MUST be named "settings" (lowercase) to be shown in the Render Features inspector
+  public MyFeatureSettings settings = new MyFeatureSettings();
+
+  RenderTargetHandle renderTextureHandle;
+  MyBlitRenderPass myRenderPass;
+
+  public override void Create()
+  {
+    myRenderPass = new MyBlitRenderPass(
+      "My custom pass",
+      settings.WhenToInsert,
+      settings.MaterialToBlit
+    );
+  }
+
+  // called every frame once per camera
+  public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+  {
+    if (!settings.IsEnabled)
+    {
+      // we can do nothing this frame if we want
+      return;
+    }
+
+    // Gather up and pass any extra information our pass will need.
+    // In this case we're getting the camera's color buffer target
+    var cameraColorTargetIdent = renderer.cameraColorTarget;
+    myRenderPass.Setup(cameraColorTargetIdent);
+
+    // Ask the renderer to add our pass.
+    // Could queue up multiple passes and/or pick passes to use
+    renderer.EnqueuePass(myRenderPass);
+  }
+}
+</code></pre>
+
+<h2>MyBlitRenderPass.cs</h2>
+<pre><code>using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+
+class MyBlitRenderPass : ScriptableRenderPass
+{
+  // used to label this pass in Unity's Frame Debug utility
+  string profilerTag;
+
+  Material materialToBlit;
+  RenderTargetIdentifier cameraColorTargetIdent;
+  RenderTargetHandle tempTexture;
+
+  public MyBlitRenderPass(string profilerTag,
+    RenderPassEvent renderPassEvent, Material materialToBlit)
+  {
+    this.profilerTag = profilerTag;
+    this.renderPassEvent = renderPassEvent;
+    this.materialToBlit = materialToBlit;
+  }
+
+  // This isn't part of the ScriptableRenderPass class and is our own addition.
+  // For this custom pass we need the camera's color target, so that gets passed in.
+  public void Setup(RenderTargetIdentifier cameraColorTargetIdent)
+  {
+    this.cameraColorTargetIdent = cameraColorTargetIdent;
+  }
+
+  // called each frame before Execute, use it to set up things the pass will need
+  public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
+  {
+    // create a temporary render texture that matches the camera
+    cmd.GetTemporaryRT(tempTexture.id, cameraTextureDescriptor);
+  }
+
+  // Execute is called for every eligible camera every frame. It's not called at the moment that
+  // rendering is actually taking place, so don't directly execute rendering commands here.
+  // Instead use the methods on ScriptableRenderContext to set up instructions.
+  // RenderingData provides a bunch of (not very well documented) information about the scene
+  // and what's being rendered.
+  public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+  {
+    // fetch a command buffer to use
+    CommandBuffer cmd = CommandBufferPool.Get(profilerTag);
+    cmd.Clear();
+
+    // the actual content of our custom render pass!
+    // we apply our material while blitting to a temporary texture
+    cmd.Blit(cameraColorTargetIdent, tempTexture.Identifier(), materialToBlit, 0);
+
+    // ...then blit it back again
+    cmd.Blit(tempTexture.Identifier(), cameraColorTargetIdent);
+
+    // don't forget to tell ScriptableRenderContext to actually execute the commands
+    context.ExecuteCommandBuffer(cmd);
+
+    // tidy up after ourselves
+    cmd.Clear();
+    CommandBufferPool.Release(cmd);
+  }
+
+  // called after Execute, use it to clean up anything allocated in Configure
+  public override void FrameCleanup(CommandBuffer cmd)
+  {
+    cmd.ReleaseTemporaryRT(tempTexture.id);
+  }
+}
+</code></pre>
+
+<h1>CommandBuffer</h1>
+<p>You'll notice that unlike "old" ways of doing custom rendering in Unity we don't directly execute any rendering commands. We're not using any of the <code>Graphics</code> or <code>GL</code> methods. Instead everything is done through a <code>CommandBuffer</code>. We set up the commands we want to execute and then hand them over to the scriptable render pipeline to actually run them.</p>
+
+<h1>Magic Name</h1>
+<p>There's one "magic name" that you should be aware of. In our feature class (the one which extends <code>ScriptableRendererFeature</code>) if we have a public field named <code>settings</code> then Unity will pick up that referenced object and display its public fields nicely in the inspector when setting up the feature.</p>
+
+<h1>Using our Feature</h1>
+<p>With those files now in the project we can tell the SRP to use the new feature we've just defined.</p>
+
+<img src="/article-data/scriptable-render/addFeature.png" width="761" height="285">
+<img class="right" src="/article-data/scriptable-render/featuresMenu.png" width="250" height="50">
+<p>Any project using a scriptable render pipeline will have a renderer asset. Select that and the inspector will show a list of renderer features (which is probably empty.) Click the + symbol and Unity will find anything that extends <code>ScriptableRendererFeature</code> and offer to add that feature to the renderer.</p>
+
+<img class="right" src="/article-data/scriptable-render/featureSettings.png" width="328" height="377">
+<p>Now that the feature is added to the renderer you'll see the contents of its <code>settings</code> field available for modification. This example feature needs a material in order to do anything useful. I've made a colour inversion effect in the shader graph. Because it's being used to blit rather than to render a mesh it uses the unlit master for output and a texture with an exposed reference <code>_MainTex</code> as input.</p>
+
+<img src="/article-data/scriptable-render/shaderGraph.png" style="max-width: 100%; height: auto;">
+
+<p>Once the feature is set up with a material you should immediately see it in effect - our modified SRP is used to render both the shaded scene view and the game view.</p>
+
+<div class="image-box">
+	<img src="/article-data/scriptable-render/before.png" alt="A simple Unity scene" style="width: 330px; height: 262px;">
+	<img src="/article-data/scriptable-render/after.png" alt="A simple Unity scene but the colours and lighting appear unnatural because they have been inverted" style="width: 330px; height: 262px;">
+</div>
+
+<h1>Frame Debug</h1>
+<p>When you're messing around with rendering Unity's Frame Debug tool is very useful for understanding what's going on. You can access it from Window &gt; Analysis &gt; Frame Debugger.</p>
+
+<img src="/article-data/scriptable-render/frameDebug.png" style="width: 339px; height: 251px;">
+
+<p>Your frame debugger may have significantly more steps in it than shown here. I've turned off anti-aliasing and shadows to keep it simple for this example. The thing to notice is that the feature we created is now slotted into the renderer, complete with the not very descriptive "My custom pass" label.</p>
+
+<p>Where our feature is slotted in (and what that label is) can be modified in the feature's code. Try setting this feature to be slotted in just before the skybox is rendered, that way everything in the scene except the sky will be inverted.</p>
+
+<p>You can click through to see what each step is doing. We'll recognise that "My custom pass" is first blit'ing the camera's buffer to a render texture using the custom shader we made and then blit'ing it back again with the default <code>Hidden/BlitCopy</code> shader.</p>
+
+<h1>RenderDoc</h1>
+<p>I should also mention <a href="https://renderdoc.org/">RenderDoc</a> which gives a more detailed breakdown of what exactly is happening at every step of your scene's render process. I find it especially useful when I need to know exactly what state texture and buffer data is in at a particular moment through the rendering process.</p>
+
+<h1>Going Further</h1>
+<p>There's a lot more to be said about custom renderer features. They can be used to implement a huge number of things, and offer just as many opportunities to replace your rendered scene with a black rectangle. Hopefully this at least gives you a starting off point to begin your exploration.</p>
+
+<p>You might be interested in my <a href="/article/compute-shader-intro">tutorial on using a compute shader within a SRF to generate lens flare quads</a>.</p>
+
+    </article>
+</body>
+</html>

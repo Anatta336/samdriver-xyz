@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Neighbour Aware Tile Selection</title>
+    <meta name="description" content="Automatically select the right tile from a tilesheet by examining neighbours.">
+    <meta name="sort" content="1970-01-04">
+</head>
+
+<body>
+    <article>
+<img src="/article-data/neighbour-aware-tiles/comparisonStone.png" class="pixel" style="width: 144px; height: 144px;">
+<p>Creating an attractive scene from tiles typically requires placing the tiles so that they join together with their neighbours. Compare these two simple platforms and see how the bottom version looks generally nicer thanks to tiles that are aware of and blend with their neighbours. This is easy enough to do if you're manually placing tiles, but if you're working with procedurally generated or dynamic map data you're going to need some programming to handle it. Here's a technique for doing that in a neat way.</p>
+
+<h2>A Rocky Example</h2>
+<img class="pixel right" src="/article-data/neighbour-aware-tiles/fullStone.png" style="width: 240px; height: 240px;">
+<p>We'll be using parts of a tileset by <a href="http://www.retinaleclipse.com/">Agnes Heyer</a> (accessed via <a href="https://forums.tigsource.com/index.php?topic=14166.0">this forum post</a>.) I've only used a small part of the full set of tiles and other graphics they have released; the full thing is beautiful. The tileset is available under a <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license.</p>
+
+<p>These 16 tile variations are designed to join to other tiles directly above, below, to the left, and to the right of them. This means each tile will need to check its four direct neighbours to know what version it should appear as. This can be done with a towering if statement, but there is a far neater way.</p>
+
+<pre><code>function giveTileIndex(above, below, left, right):Int {
+   if (!above &amp;&amp; !below &amp;&amp; !left &amp;&amp; !right) {
+      return 0;
+   }
+   else if (above &amp;&amp; !below &amp;&amp; !left &amp;&amp; !right) {
+      return 1;
+   }
+   else if (!above &amp;&amp; below &amp;&amp; !left &amp;&amp; !right) {
+      return 4;
+   }
+   else if (!above &amp;&amp; !below &amp;&amp; left &amp;&amp; !right) {
+      return 2;
+   }
+   else if (!above &amp;&amp; !below &amp;&amp; !left &amp;&amp; right) {
+      return 8;
+   }
+   else if (above &amp;&amp; below &amp;&amp; !left &amp;&amp; !right) {
+      return 5;
+   }
+   // ... and so on. Fortunately there's a better way
+}</code></pre>
+
+<h2>Assigning Numbers</h2>
+<p>There are 4 directions to consider, each with 2 possible states (either there's a tile to join with, or there isn't). That means there are 2<sup>4</sup> = 16 combinations. Which is a good thing because that's how many tile variations we have.</p>
+<style>
+#tile-sheet {
+	width: 512px;
+	height: 48px;
+}
+@media (max-width: 550px) {
+	#tile-sheet {
+		width: 256px;
+		height: 24px;
+	}
+}
+</style>
+<img src="/article-data/neighbour-aware-tiles/numberedStone.png" id="tile-sheet" class="pixel" width="256px" height="24px">
+
+<p>We can generate a number for each possible combination of neighbours. Variation 0 will be when there's no neighbours. If the above neighbour is present we add 1, for the left 2, for the below 4, and for the right we add 8. Why these numbers? You'll notice they're powers of two:</p>
+<ul style="list-style-type:none">
+	<li>2<sup>0</sup> = 1</li>
+	<li>2<sup>1</sup> = 2</li>
+	<li>2<sup>2</sup> = 4</li>
+	<li>2<sup>3</sup> = 8</li>
+</ul>
+<p>This means we can selectively add them to make every integer from 0 to 15. 0 when none are added, 15 when they're all added, and everything in between by adding some combination. This will all be sounding familiar if you've dealt with binary numbers before.</p>
+
+<p>The variation number can be calculated simply by adding up the values assigned to each side that has a matching tile. Try clicking on the example below to change the neighbours of this tile.</p>
+
+<style>
+#single-tile-canvas {
+   width:      156px;
+   height:      156px;
+   border:    none;
+}
+#single-text {
+   text-align:   center;
+}
+</style>
+<noscript>
+	<!-- if javascript is disabled hide the canvas that we can't use -->
+	<style>
+	#single-tile-div {
+		display: none;
+	}
+	</style>
+	<p class="warning">Javascript is disabled or unavailable in your browser so the interactive example can't be shown. Here's a static version instead:</p>
+	<img src="/article-data/neighbour-aware-tiles/singleStatic.png" class="pixel" style="width: 156px; height: 156px;">
+	<p id="single-text">tileIndex = 4 + 8 = 12</p>
+</noscript>
+<div id="single-tile-div">
+	<canvas class="pixel interactive" id="single-tile-canvas" width="52" height="52"></canvas>
+	<p id="single-text">tileIndex = 4 + 8 = 12</p>
+</div>
+
+<p>The function to calculate the the variation number is nice and simple.</p>
+<pre><code>function calculateTileIndex(above, below, left, right) {
+   var sum = 0;
+   if (above) sum += 1;
+   if (left)  sum += 2;
+   if (below) sum += 4;
+   if (right) sum += 8;
+   return sum;
+}
+</code></pre>
+
+<p>Once we know what which tile variation we want to draw, it's a simple case of selecting it from the tilesheet where the variations are arranged in order and drawing it out.</p>
+
+<pre><code>function drawTile(context, tileIndex, x, y) {
+   xStart = tileIndex * xTileSize;
+   context.drawImage(sheetImage,
+      // source rectangle
+      xStart, 0,
+      xTileSize, yTileSize,
+
+      // destination
+      x, y,
+      xTileSize, yTileSize
+   );
+};
+</code></pre>
+
+<h2>Full Demo</h2>
+<style>
+#full-demo-canvas {
+	width: 512px;
+	height: 512px;
+	background: #bbc5cf;
+}
+@media (max-width: 550px) {
+	#full-demo-canvas {
+		width: 256px;
+		height: 256px;
+	}
+}
+</style>
+<noscript>
+	<!-- if javascript is disabled hide the canvas that we can't use -->
+	<style>
+	#full-demo-div {
+		display: none;
+	}
+	</style>
+	<p class="warning">Javascript is disabled or unavailable in your browser so the interactive demo can't be shown.</p>
+</noscript>
+<div id="full-demo-div">
+	<canvas class="pixel interactive" id="full-demo-canvas" width="256" height="256"></canvas>
+</div>
+<script defer="true" src="/article-data/neighbour-aware-tiles/tileDemo.js"></script>
+
+<p>Click in the canvas above to toggle each grid cell and see the tile graphics get updated.</p>
+
+<p>Thanks again to <a href="http://www.retinaleclipse.com/">Agnes Heyer</a> for creating the tile images used throughout this article. The <a href="/article-data/neighbour-aware-tiles/tileDemo.js">Javascript source</a> for both this and the single tile demo is available. In accordance to the Share-Alike part of the <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license, these demos are released under the same license.</p>
+
+<h2>Bitwise</h2>
+<p>Earlier I mentioned that we're using powers of two and that relationship to binary numbers. We've effectively been doing bitwise operations this whole time. This version of <code>calculateTileIndex</code> does the same as before but makes it more clear that we're messing around with bits rather than just adding up some numbers. I consider this bitwise version to be better code, but have used the addition version for the demo as I think it's friendlier to a broad audience.</p>
+<pre><code>// bitwise version
+function calculateTileIndex(above, left, below, right) {
+   var index = 0;
+   if (above) index |= 1 &lt;&lt; 0;
+   if (left)  index |= 1 &lt;&lt; 1;
+   if (below) index |= 1 &lt;&lt; 2;
+   if (right) index |= 1 &lt;&lt; 3;
+   return index;
+}
+
+// using binary literals for best clarity, but doesn't work in older/bad browsers
+function calculateTileIndex(above, left, below, right) {
+   var index = 0;
+   if (above) index |= 0b0001;
+   if (left)  index |= 0b0010;
+   if (below) index |= 0b0100;
+   if (right) index |= 0b1000;
+   return index;
+}
+</code></pre>
+
+<h2>Going Further</h2>
+<p>This is great for maps that are just made up of a single tile type, but what about more complex situations? You can extend this technique directly to handle 3 possibilities for each neighbour but then you need a tileset of 3<sup>4</sup> = 81 tiles. That is a lot of tiles to hand design, and most games are going to have more than 3 tile types meaning you soon need absurdly large numbers of tile variations. Instead I've found it useful to limit what combinations are accounted for. You might have wall tiles that should join to other nearby walls, but ignore all other types of tile. Or you can compose tiles with a tiles that merge with transparent empty space so they can be placed over any other tile in the game and give a reasonable result. In summary, don't think of this as a magical technique that solves handling tiles in any game but it is a useful building block.</p>
+
+<p>I've often used this technique outside of tiles altogether. Needing to respond to arrangements and neighbours is a fairly common problem throughout many areas of game development, from finite state automata to marching cube algorithms. Whenever you find yourself writing a long sequence of if statements look for the opportunity to generate unique values representing each possibility and often something useful will come up.</p>
+
+<p>You can see how this technique can be applied to something closer to a real game example in <a href="/articles/dungeon-tiles">this worked example using a dungeon tileset.</a></p>
+    </article>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Pixel Smoke</title>
+    <meta name="description" content="A retro smoke effect created by pixel fiddling.">
+    <meta name="sort" content="1970-01-02">
+</head>
+
+<body>
+    <article>
+<style>
+#demo-box {
+    /* square's side * sin(45deg) */
+    height: calc(480px * 1.414);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+#smoke-canvas, #smoke-image {
+	background:	#1d140f;
+    margin: 0;
+	-ms-transform:		rotate(-45deg);
+	-webkit-transform:	rotate(-45deg);
+	transform:			rotate(-45deg);
+
+	/* largest size */
+	width:			480px;
+	height:			480px;
+}
+@media (max-width: 900px) {
+	#smoke-canvas, #smoke-image {
+		width:			420px;
+		height:			420px;
+	}
+    #demo-box {
+        height: calc(420px * 1.414);
+    }
+}
+@media (max-width: 700px) {
+	#smoke-canvas, #smoke-image {
+		width:			360px;
+		height:			360px;
+	}
+    #demo-box {
+        height: calc(360px * 1.414);
+    }
+}
+
+@media (max-width: 600px) {
+	#smoke-canvas, #smoke-image {
+		width:			300px;
+		height:			300px;
+	}
+    #demo-box {
+        height: calc(300px * 1.414);
+    }
+}
+@media (max-width: 450px) {
+	#smoke-canvas, #smoke-image {
+		width:			240px;
+		height:			240px;
+	}
+}
+@media (max-width: 350px) {
+	#smoke-canvas, #smoke-image {
+		width:			180px;
+		height:			180px;
+	}
+    #demo-box {
+        height: calc(180px * 1.414);
+    }
+}
+
+#slider-box {
+	width:			205px;
+	margin-left:	auto;
+	margin-right:	auto;
+}
+#slider-box>input {
+	display:	block;
+	width:		200px;
+	margin-left:	auto;
+	margin-right:	auto;
+}
+#slider-box p {
+	display:	 	block;
+	text-align:		center;
+	font-family: 	monospace;
+    font-size: 		1rem;
+    letter-spacing:	0px;
+    font-weight:	normal;
+    font-style:		normal;
+	margin-left:	0;
+	margin-right:	0;
+	margin-top:		0.3rem;
+	margin-bottom:	1.5rem;
+
+	border-bottom:	1px solid #b7b7b8;
+}
+
+</style>
+<noscript>
+	<!-- if javascript is disabled hide the canvas that we can't use -->
+	<style>
+	#smoke-canvas, #slider-box {
+		display: none;
+	}
+	</style>
+	<p class="warning">Javascript is disabled or unavailable in your browser so the demo cannot be shown. Here's a static image instead:</p>
+	<div id="demo-box">
+		<img id="smoke-image" class="pixel" src="/article-data/pixel-smoke/smokeStatic.png">
+	</div>
+</noscript>
+
+<div id="demo-box">
+	<canvas class="pixel" id="smoke-canvas" width="60" height="60"></canvas>
+</div>
+<div id="slider-box">
+    <input id="p-do-nothing" type="range" value="0.33" min="0.0" max="1.0" step="0.01">
+    <p>pDoNothing</p>
+    <input id="reverse-scan" type="checkbox">
+    <p>reverseScan</p>
+</div>
+<script defer="true" src="/article-data/pixel-smoke/pixelSmoke.js"></script>
+<h2>Flames of the Past</h2>
+<p>This is a recreation of an effect I created when I was first learning to program in the not-actually-that-glorious days of QBasic. It bothered me at the time that I was stuck with the "smoke" always going diagonally across the display. Fortunately <code>&lt;canvas&gt;</code> elements can be rotated. I'm quite fond of this chunky rotated pixel look (although of course Internet Explorer still ignores the <code>image-rendering</code> CSS attribute, so the demo may appear blurry.) One of the source blocks will follow your mouse/touch around the canvas.</p>
+
+<h2>Cellular Automata? It's just pixels</h2>
+<p>If you want to sound clever you can call this a two dimensional stochastic cellular automata. But we all know it's just messing around with pixels. Every update each pixel chooses at random one of three things to do:</p>
+<ul>
+	<li>Copy the colour of the pixel to their lower-left.</li>
+	<li>Copy the colour of the pixel to their lower-right.</li>
+	<li>Do nothing.</li>
+</ul>
+<p>That's all there is to it. We introduce some coloured pixels by manually setting a few (those are the static 3x3 pixel diamonds). The interesting shapes that seem to twist and morph as they drift upwards emerge from that simple random copying of pixels.</p>
+
+<h2>Pixel Fiddling with Canvas</h2>
+<p>The <code>&lt;canvas&gt;</code> element isn't really made for pixel-by-pixel work, but you can convince it to play along. If you're concerned about performance this whole process should be moved over to the GPU. But this is just a little demo and computers are absurdly fast so we'll use CPU-side operations. <code>getImageData()</code> on the canvas' 2D context gives us access to a <code>Uint8ClampedArray</code> representing every pixel's red, green, blue, and alpha channels. We can do whatever we like with that data, then <code>putImageData()</code> to display it.</p>
+
+<p>The image data is just a long array of values arranged by channel and position, so let's make a couple of functions to get and set pixel colours from it. As this is is being nostalgic, we'll name them after the old <code>PGET</code> and <code>PSET</code> statements.</p>
+<pre><code>function pGet(data, x, y) {
+   if (x &lt; 0 || x &gt; xCanvasSize ||
+      y &lt; 0 || y &gt; yCanvasSize
+   ) {
+      return { r: 0, g: 0, b: 0, a: 0 };
+   }
+
+   var index = (x + y * xCanvasSize) * 4;
+   return {
+      r: data[index + 0],
+      g: data[index + 1],
+      b: data[index + 2],
+      a: data[index + 3],
+   };
+}</code></pre>
+<pre><code>function pSet(data, x, y, r, g, b, a) {
+   if (x &lt; 0 || x &gt; xCanvasSize ||
+      y &lt; 0 || y &gt; yCanvasSize
+   ) {
+      return;
+   }
+
+   var index = (x + y * xCanvasSize) * 4;
+   data[index + 0] = r;
+   data[index + 1] = g;
+   data[index + 2] = b;
+   data[index + 3] = a;
+}</code></pre>
+
+<p>Now that we can read and write pixel colours, we just need to implement the update rules. Notice that we iterate over the pixels in an order that means we're always reading from pixels that haven't yet been updated. Normally cellular automata implementations need two buffers to flip between so the old state is still accessible all through the update process, but because we only read from neighbours in two directions we can get away with this single buffer.</p>
+
+<pre><code>function smear() {
+   var image = context.getImageData(0, 0, xCanvasSize, yCanvasSize);
+   var data = image.data;
+   for (var y = yCanvasSize; y &gt;= 0; y--) {
+      for (var x = 0; x &lt; xCanvasSize; x++) {
+         var r = Math.random();
+         if (r &lt; 0.33333) {
+            var c = pGet(data, x - 1, y);
+            pSet(data,
+               x, y,
+               c.r, c.g, c.b, c.a
+            );
+         }
+         else if (r &lt; 0.66666) {
+            var c = pGet(data, x, y + 1);
+            pSet(data,
+               x, y,
+               c.r, c.g, c.b, c.a
+            );
+         }
+      }
+   }
+   context.putImageData(image, 0, 0);
+}</code></pre>
+
+<p>The colours are generated from a <a href="/article/simple-procedural-palette">simple palette as described in another article</a>. We do a little trigonometry to account for the effect of canvas rotation on mouse position. The update function is called through <code>requestAnimationFrame()</code>, with the update function limiting update rate to 30Hz for aesthetic reasons. The <a href="/article-data/pixel-smoke/pixelSmoke.js">full javascript source</a> is of course available.</p>
+
+<h2>Tweaking</h2>
+<p>You'll have noticed a slider and checkbox under the canvas.</p>
+<p><code>pDoNothing</code> adjusts the probability that each pixel will do nothing instead of copying from one of its neighbours. A high values makes the "smoke" move slower, a low value tends to create line formations perpendicular to the direction of motion.</p>
+<p><code>reverseScan</code> simulates a bug by iterating through the pixels in the wrong order. Now each pixel reads from the new version of its neighbour rather than the old version, which means a single update frame can spread colour from one pixel over to many. With that active it's no longer a cellular automata, but it creates more varied shapes that I like the look of.</p>
+    </article>
+</body>
+</html>

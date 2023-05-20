@@ -13,8 +13,8 @@ class Footer
                 <p>
                     <!-- conceal email from simple bots -->
                     <script type="text/javascript">
-                        email = 'gmx.co.uk'
-                        email = ('sdriver' + '@' + email)
+                        const encoded = [ 115, 108, 130, 129, 150, 141, 162, 120, 167, 181, 200, 134, 195, 215, 158, 237, 235];
+                        const email = encoded.map((enc, index) => enc - index * 8).map(code => String.fromCharCode(code)).join('');
                         document.write(`<a href="mailto: ${email}">${email} <img src="/footer/email.svg" class="smallIcon" alt="Email" height="10px" width="14.10px"></a>`)
                     </script>
                 </p>

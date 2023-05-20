@@ -1,9 +1,8 @@
 # Personal Site
-
 Simple article site without a database.
 
 ## Running locally
-Assuming a Windows machine, possibly using WSL, with Docker installed.
+Assuming a Windows machine using WSL and Docker.
 
 `docker-compose up -d`
 
@@ -17,5 +16,5 @@ rsync -e "ssh" -av --info=progress2 --exclude ".git" ~/code/samdriver.xyz/ sdriv
 ```
 
 ## TODO
-[ ] Auto-generate outline on side of article.
-[ ] Re-encode images as webp.
+- [ ] Auto-generate outline on side of article.
+- [ ] Re-encode images as webp.

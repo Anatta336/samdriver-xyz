@@ -5,7 +5,6 @@ namespace App\Home;
 use App\Articles\ArticleList;
 use App\Includes\Footer;
 use App\Includes\Head;
-use App\Includes\Nav;
 
 class Renderer
 {
@@ -20,9 +19,6 @@ class Renderer
         $html .= Head::render('Sam Driver', 'Articles and tutorials on game and web development');
 
         $html .= '<body>';
-
-        // <nav>
-        $html .= Nav::render();
 
         $html .= '<header>';
         $html .= '<h1>Articles and Tutorials</h1>';

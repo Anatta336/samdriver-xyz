@@ -18,3 +18,4 @@ rsync -e "ssh" -av --info=progress2 --exclude ".git" ~/code/samdriver.xyz/ sdriv
 ## TODO
 - [ ] Auto-generate outline on side of article.
 - [ ] Re-encode images as webp.
+- [ ] Update local version to use Apache, to match server.

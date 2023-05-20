@@ -31,6 +31,8 @@ class Head
             <meta name="author" content="Sam Driver">
             <title>{$title}</title>
 
+            <link rel="preload" href="/fonts/roboto-v30-latin-regular.woff2" as="font" type="font/woff2" crossorigin/>
+
             <style>
             @font-face {
                 font-display: swap;

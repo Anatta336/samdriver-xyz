@@ -15,3 +15,7 @@ Access site at `http://netdev.samdriver.xyz/`
 ```
 rsync -e "ssh" -av --info=progress2 --exclude ".git" ~/code/samdriver.xyz/ sdriver@new.samdriver.xyz:/home/sdriver/samdriver.xyz
 ```
+
+## TODO
+[ ] Auto-generate outline on side of article.
+[ ] Re-encode images as webp.

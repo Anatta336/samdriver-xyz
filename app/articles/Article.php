@@ -123,12 +123,12 @@ class Article
         foreach ($metaElements as $metaElement) {
             if ($metaElement->getAttribute('name') === 'description') {
                 $this->description = $metaElement->getAttribute('content');
-                break;
+                continue;
             }
 
             if ($metaElement->getAttribute('name') === 'sort') {
                 $this->sort = $metaElement->getAttribute('content');
-                break;
+                continue;
             }
         }
     }

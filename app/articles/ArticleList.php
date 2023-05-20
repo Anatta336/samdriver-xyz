@@ -55,7 +55,7 @@ class ArticleList
 
         if ($sort) {
             usort($this->articles, function (Article $a, Article $b) {
-                return $a->getSort() <=> $b->getSort();
+                return $b->getSort() <=> $a->getSort();
             });
         }
 

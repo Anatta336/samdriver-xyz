@@ -176,7 +176,7 @@ aside
 	background-color:	#cae3ed;
 }
 
-.article-link-block h1
+.article-link-block h1, .article-link-block h2
 {
 	text-transform: uppercase;
 	text-decoration: none;

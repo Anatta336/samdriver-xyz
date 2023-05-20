@@ -8,10 +8,10 @@ class Article
 {
     const DATA_PATH = 'article-data/';
 
-    public readonly string $slug;
-
+    protected string $slug;
     protected string $name;
     protected string $description;
+    protected string $sort;
     protected string $path = '';
 
     public static function fromSlug(string $slug): Article|null
@@ -37,6 +37,11 @@ class Article
         return file_exists($this->path);
     }
 
+    public function getSlug(): string
+    {
+        return $this->slug;
+    }
+
     public function getName(): string
     {
         if (!isset($this->name)) {
@@ -53,6 +58,15 @@ class Article
         }
 
         return $this->description ?? '-';
+    }
+
+    public function getSort(): string
+    {
+        if (!isset($this->sort)) {
+            $this->loadSummary();
+        }
+
+        return $this->sort ?? '2000-01-00';
     }
 
     /**
@@ -104,11 +118,16 @@ class Article
         // Extract title.
         $this->name = $headElement->getElementsByTagName('title')->item(0)->textContent;
 
-        // Look through the meta elements for the description.
+        // Look through the meta elements for the description and sort value.
         $metaElements = $headElement->getElementsByTagName('meta');
         foreach ($metaElements as $metaElement) {
             if ($metaElement->getAttribute('name') === 'description') {
                 $this->description = $metaElement->getAttribute('content');
+                break;
+            }
+
+            if ($metaElement->getAttribute('name') === 'sort') {
+                $this->sort = $metaElement->getAttribute('content');
                 break;
             }
         }

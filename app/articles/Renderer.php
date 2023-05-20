@@ -4,6 +4,7 @@ namespace App\Articles;
 
 use App\Includes\Footer;
 use App\Includes\Head;
+use App\Includes\Nav;
 
 class Renderer
 {
@@ -18,6 +19,9 @@ class Renderer
         $html .= Head::render($article->getName(), $article->getDescription());
 
         $html .= '<body>';
+
+        // <nav>
+        $html .= Nav::render();
 
         // <header>
         $html .= '<header>';

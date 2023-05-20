@@ -4,31 +4,61 @@ namespace App\Articles;
 
 class ArticleList
 {
-    public static function getSlugs(): array
+    protected array $slugs;
+    protected array $articles;
+
+    /**
+     * @return array<string> Array of slugs, e.g. 'refraction-sphere'.
+     */
+    public function getSlugs(): array
     {
+        if (isset($this->slugs)) {
+            return $this->slugs;
+        }
+
         $directories = new \DirectoryIterator(Article::DATA_PATH);
 
-        $slugs = [];
+        $this->slugs = [];
 
         foreach ($directories as $directory) {
             if ($directory->isDir() && !$directory->isDot()) {
-                $slugs[] = $directory->getFilename();
+                $this->slugs[] = $directory->getFilename();
             }
         }
 
-        return $slugs;
+        return $this->slugs;
     }
 
-    public static function getArticles(): array
+    /**
+     * @param bool $sort Whether to sort the articles by their sort order.
+     * @return array<Article> Array of Article objects.
+     */
+    public function getArticles(bool $sort = true): array
     {
-        $slugs = self::getSlugs();
-
-        $articles = [];
-
-        foreach ($slugs as $slug) {
-            $articles[] = new Article($slug);
+        if (isset($this->articles)) {
+            return $this->articles;
         }
 
-        return $articles;
+        if (!isset($this->slugs)) {
+            $this->getSlugs();
+        }
+
+        $this->articles = [];
+
+        foreach ($this->slugs as $slug) {
+            $this->articles[] = Article::fromSlug($slug);
+        }
+
+        $this->articles = array_filter($this->articles, function (Article|null $article) {
+            return !empty($article) && $article->exists();
+        });
+
+        if ($sort) {
+            usort($this->articles, function (Article $a, Article $b) {
+                return $a->getSort() <=> $b->getSort();
+            });
+        }
+
+        return $this->articles;
     }
 }

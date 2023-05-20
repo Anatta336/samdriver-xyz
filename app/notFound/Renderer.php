@@ -4,6 +4,7 @@ namespace App\NotFound;
 
 use App\Includes\Footer;
 use App\Includes\Head;
+use App\Includes\Nav;
 
 class Renderer
 {
@@ -18,6 +19,10 @@ class Renderer
         $html .= Head::render('Not Found', '');
 
         $html .= '<body>';
+
+        // <nav>
+        $html .= Nav::render();
+
         $html .= '<header>';
         $html .= '<h1>404 - Not Found</h1>';
         $html .= '<p>'.htmlentities($message).'</p>';

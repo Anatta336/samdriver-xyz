@@ -73,21 +73,28 @@ nav a.home {
     flex-wrap: wrap;
     align-items: stretch;
     justify-content: center;
-    align-content: center;
-    padding: 10px;
-    height: 74px;
-    width: 88px;
+    align-content: flex-start;
+    padding: 6px;
+    height: max(min(74px, 7vh), 30px);
+    width: min(120px, 7vw);
     gap: 3px;
-    opacity: 60%;
     border-radius: 2px;
     background: radial-gradient(farthest-corner at 90% 50%, #9bd5ff75 0%, transparent 90%), radial-gradient(farthest-corner at 10% 10%, #ff95a8 0%, #b5adff 100%);
+    overflow: hidden;
 }
 
-nav a.home .square {
-    display: block;
-    background-color: #ebebebc7;
-    width: 20px;
-    height: 17px;
+nav a.home .pseudo-link {
+    flex: 0 1 auto;
+    background-color: #ebebebcc;
+    width: 24px;
+    height: 13px;
+}
+
+nav a.home .pseudo-header {
+    flex: 1 0 100%;
+    background: #ebebebcc;
+    height: 6px;
+    margin: -6px;
 }
 
 nav a {
@@ -202,7 +209,7 @@ nav .article-link-block {
     color: #202020;
     font-weight: bold;
     font-size: 1.2rem;
-    letter-spacing: 0.25em;
+    letter-spacing: 0.2em;
     margin: 0;
 }
 
@@ -258,7 +265,7 @@ header h1 {
     display: block;
     font-size: 1.5rem;
     text-align: left;
-    letter-spacing: 0.35em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
     font-weight: bold;
     margin: 0;
@@ -355,7 +362,7 @@ article h2 {
     color: #202020;
     font-weight: normal;
     font-size: 1.1rem;
-    letter-spacing: 0.25em;
+    letter-spacing: 0.2em;
     clear: both;
     margin-top: 3rem;
     font-weight: bold;

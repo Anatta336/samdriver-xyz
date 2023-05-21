@@ -61,4 +61,9 @@ class ArticleList
 
         return $this->articles;
     }
+
+    public function getArticleCount(): int
+    {
+        return count($this->getArticles());
+    }
 }

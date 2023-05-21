@@ -8,7 +8,7 @@ class Nav
     {
         return <<<'EOD'
         <nav>
-            <a class="home" href="/">
+            <a class="home" href="/" aria-label="View articles list">
                 <div class="square"></div>
                 <div class="square"></div>
                 <div class="square"></div>

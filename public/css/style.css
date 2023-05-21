@@ -54,7 +54,7 @@ nav {
     align-items: center;
     justify-content: center;
     align-content: center;
-    flex: 1 0 auto;
+    flex: 0 0 auto;
 }
 
 .article nav a {
@@ -75,12 +75,13 @@ nav a.home {
     justify-content: center;
     align-content: flex-start;
     padding: 6px;
-    height: max(min(74px, 7vh), 30px);
-    width: min(120px, 7vw);
+    height: max(min(60px, 7vh), 30px);
+    width: max(min(120px, 7vw), 30px);
     gap: 3px;
     border-radius: 2px;
     background: radial-gradient(farthest-corner at 90% 50%, #9bd5ff75 0%, transparent 90%), radial-gradient(farthest-corner at 10% 10%, #ff95a8 0%, #b5adff 100%);
     overflow: hidden;
+    box-shadow: 0px 2px 3px 0px #00000029;
 }
 
 nav a.home .pseudo-link {
@@ -194,6 +195,7 @@ nav .article-link-block {
     align-items: center;
     justify-content: flex-start;
     gap: 20px;
+    box-shadow: 0px 2px 5px 0px #00000029;
 }
 
 .article-link-block:hover,
@@ -240,7 +242,7 @@ header {
     font-family: 'Roboto', sans-serif;
     padding: 20px 40px;
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 20px;
     justify-content: flex-start;
     max-width: 800px;
@@ -249,10 +251,11 @@ header {
     box-sizing: border-box;
     align-items: stretch;
     border-radius: 2px;
+    box-shadow: 0px 2px 5px 0px #00000029;
 }
 
 header>div {
-    flex: 1000 1 400px;
+    flex: 1 1;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -287,6 +290,7 @@ article {
     background-color: #ebebeb70;
     border-radius: 2px;
     box-sizing: border-box;
+    box-shadow: 0px 2px 5px 0px #00000029;
 }
 
 section {

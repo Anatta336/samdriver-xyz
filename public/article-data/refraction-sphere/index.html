@@ -70,7 +70,7 @@
                 shown.</p>
         </noscript>
 
-        <canvas id="intoGlassCanvas" width="512" height="512">
+        <canvas id="intoGlassCanvas" class="interactive" width="512" height="512">
             <!-- fallback content, in this case shown if js enabled but not canvas -->
             <img src="/article-data/refraction-sphere/fallbackAirToGlass.webp"
                 alt="Diagram of a light ray entering a flat glass surface. The ray is bent towards the surface's normal when passing into the glass medium. A smaller ray is seen reflected off the surface."
@@ -86,7 +86,41 @@
 
         <p>How much the transmission ray is bent away from the incident ray's path is determined by <b>Snell's Law</b>.
         </p>
-        <p>η₁sin(θ₁) = η₂sin(θ₂)</p>
+        <math><mrow>
+            <msub>
+                <mi>η</mi>
+                <mn>1</mn>
+            </msub>
+            <mi>sin</mi>
+            <mrow>
+                <mrow>
+                    <mo fence="true" form="prefix" stretchy="false">(</mo>
+                    <mrow>
+                        <msub>
+                            <mi>θ</mi>
+                            <mn>1</mn>
+                        </msub>
+                    </mrow>
+                    <mo fence="true" form="postfix" stretchy="false">)</mo>
+                </mrow>
+                <mo stretchy="false">=</mo>
+                <msub>
+                    <mi>η</mi>
+                    <mn>2</mn>
+                </msub>
+            </mrow>
+            <mi>sin</mi>
+            <mrow>
+                <mo fence="true" form="prefix" stretchy="false">(</mo>
+                <mrow>
+                    <msub>
+                        <mi>θ</mi>
+                        <mn>2</mn>
+                    </msub>
+                </mrow>
+                <mo fence="true" form="postfix" stretchy="false">)</mo>
+            </mrow>
+        </mrow></math>
         <p>Where η₁ is the refractive index of the medium on the incident side; θ₁ is the angle between the surface
             normal and the incident ray; η₂ is the refractive index of the medium the ray is entering; and θ₂ is the
             angle between the surface normal and the transmission ray on the other side of the interface.</p>
@@ -102,8 +136,8 @@
         <aside>
             <p>Augustin-Jean Fresnel (1788 - 1827) was a French physicist who greatly advanced the wave theory of light
                 and, among many other discoveries, invented the ridged lenses which bare his name. English speakers may
-                want to note that Fresnel's name is prounounced with the "s" sound almost totally absent: closer to
-                "Fren-el" than "Fres-nel." Everyone should note that getting elitist about pronunciation is a bad look.
+                want to know that Fresnel's name is prounounced with the "s" sound almost totally absent: closer to
+                "Fren-el" than "Fres-nel."
             </p>
         </aside>
 
@@ -122,7 +156,7 @@
                 shown.</p>
         </noscript>
 
-        <canvas id="intoAirCanvas" width="512" height="512">
+        <canvas id="intoAirCanvas" class="interactive" width="512" height="512">
             <!-- fallback content, in this case shown if js enabled but not canvas -->
             <img src="/article-data/refraction-sphere/fallbackGlassToAir.webp"
                 alt="Diagram of a light ray leaving a flat glass surface. The ray is bent away from the surface's normal when leaving the glass medium."
@@ -191,16 +225,177 @@
         <p>I find it convenient to think of rays as being like a particle that moves through the scene (the ray actually
             moves instantly, "time" is just a nice way to reason about how the ray travels.) We can call its starting
             position <i>s</i>, its velocity <i>v</i>, which means its position at time <i>t</i> is:</p>
-        <p><i>rayPosition(t) = s + vt</i></p>
+
+        <math><mrow>
+        <mi>rayPosition</mi>
+        <mrow>
+            <mrow>
+                <mo fence="true" form="prefix" stretchy="false">(</mo>
+                <mrow>
+                    <mi>t</mi>
+                </mrow>
+                <mo fence="true" form="postfix" stretchy="false">)</mo>
+            </mrow>
+            <mo stretchy="false">=</mo>
+            <mrow>
+                <mi>s</mi>
+                <mo stretchy="false">+</mo>
+                <mi mathvariant="italic">vt</mi>
+            </mrow>
+        </mrow>
+        </mrow></math>
+
         <p>For convenience we'll use the sphere's center as the origin point, meaning postions are given relative to
             there. So the ray hits the surface of a sphere with radius of <i>r</i> when:</p>
-        <p><i>length(rayPosition(t)) = r</i></p>
+
+        <math><mrow>
+            <mi>length</mi>
+            <mrow>
+                <mrow>
+                    <mo fence="true" form="prefix" stretchy="false">(</mo>
+                    <mrow>
+                        <mrow>
+                            <mi>rayPosition</mi>
+                            <mrow>
+                                <mo fence="true" form="prefix" stretchy="false">(</mo>
+                                <mrow>
+                                    <mi>t</mi>
+                                </mrow>
+                                <mo fence="true" form="postfix" stretchy="false">)</mo>
+                            </mrow>
+                        </mrow>
+                    </mrow>
+                    <mo fence="true" form="postfix" stretchy="false">)</mo>
+                </mrow>
+                <mo stretchy="false">=</mo>
+                <mi>r</mi>
+            </mrow>
+        </mrow></math>
+
         <p>From the Pythagorean theorem we know how to find the length of a vector:</p>
-        <p><i>√(rayPosition(t) · rayPosition(t)) = r</i></p>
+
+        <math><mrow>
+            <msqrt>
+                <mrow>
+                    <mi>rayPosition</mi>
+                    <mrow>
+                        <mrow>
+                            <mo fence="true" form="prefix" stretchy="false">(</mo>
+                            <mrow>
+                                <mi>t</mi>
+                            </mrow>
+                            <mo fence="true" form="postfix" stretchy="false">)</mo>
+                        </mrow>
+                        <mo stretchy="false">⋅</mo>
+                        <mi>rayPosition</mi>
+                    </mrow>
+                    <mrow>
+                        <mo fence="true" form="prefix" stretchy="false">(</mo>
+                        <mrow>
+                            <mi>t</mi>
+                        </mrow>
+                        <mo fence="true" form="postfix" stretchy="false">)</mo>
+                    </mrow>
+                </mrow>
+            </msqrt>
+            <mo stretchy="false">=</mo>
+            <mi>r</mi>
+        </mrow></math>
+
         <p>We can square both sides to get rid of the square root, and sub in for rayPosition:</p>
-        <p><i>(s + vt) · (s + vt) = r²</i></p>
+
+        <math><mrow>
+            <mrow>
+                <mrow>
+                    <mo fence="true" form="prefix" stretchy="false">(</mo>
+                    <mrow>
+                        <mrow>
+                            <mi>s</mi>
+                            <mo stretchy="false">+</mo>
+                            <mi mathvariant="italic">vt</mi>
+                        </mrow>
+                    </mrow>
+                    <mo fence="true" form="postfix" stretchy="false">)</mo>
+                </mrow>
+                <mo stretchy="false">⋅</mo>
+                <mrow>
+                    <mo fence="true" form="prefix" stretchy="false">(</mo>
+                    <mrow>
+                        <mrow>
+                            <mi>s</mi>
+                            <mo stretchy="false">+</mo>
+                            <mi mathvariant="italic">vt</mi>
+                        </mrow>
+                    </mrow>
+                    <mo fence="true" form="postfix" stretchy="false">)</mo>
+                </mrow>
+            </mrow>
+            <mo stretchy="false">=</mo>
+            <msup>
+                <mi>r</mi>
+                <mn>2</mn>
+            </msup>
+        <mrow></math>
+
         <p>A bit of multiplying out and rearranging we end up with this quadratic for t:</p>
-        <p><i>(v · v)t² + 2(v · s)t + (s · s) - r² = 0</i></p>
+
+        <math><mrow>
+            <mrow>
+                <mo fence="true" form="prefix" stretchy="false">(</mo>
+                <mrow>
+                    <mrow>
+                        <mi>v</mi>
+                        <mo stretchy="false">⋅</mo>
+                        <mi>v</mi>
+                    </mrow>
+                </mrow>
+                <mo fence="true" form="postfix" stretchy="false">)</mo>
+            </mrow>
+            <mrow>
+                <msup>
+                    <mi>t</mi>
+                    <mn>2</mn>
+                </msup>
+                <mo stretchy="false">+</mo>
+                <mn>2</mn>
+            </mrow>
+            <mrow>
+                <mo fence="true" form="prefix" stretchy="false">(</mo>
+                <mrow>
+                    <mrow>
+                        <mi>v</mi>
+                        <mo stretchy="false">⋅</mo>
+                        <mi>s</mi>
+                    </mrow>
+                </mrow>
+                <mo fence="true" form="postfix" stretchy="false">)</mo>
+            </mrow>
+            <mrow>
+                <mrow>
+                    <mi>t</mi>
+                    <mo stretchy="false">+</mo>
+                    <mrow>
+                        <mo fence="true" form="prefix" stretchy="false">(</mo>
+                        <mrow>
+                            <mrow>
+                                <mi>s</mi>
+                                <mo stretchy="false">⋅</mo>
+                                <mi>s</mi>
+                            </mrow>
+                        </mrow>
+                        <mo fence="true" form="postfix" stretchy="false">)</mo>
+                    </mrow>
+                    <mo stretchy="false">−</mo>
+                    <msup>
+                        <mi>r</mi>
+                        <mn>2</mn>
+                    </msup>
+                </mrow>
+                <mo stretchy="false">=</mo>
+                <mn>0</mn>
+            </mrow>
+        </mrow></math>
+
         <p>This can be solved using the quadratic equation. We'll get no solutions when the ray misses the sphere
             entirely, two identical solutions if the ray perfectly skims the sphere, and two different solutions when it
             passes through the sphere hitting the surface on the way in and the way out.</p>
@@ -219,10 +414,11 @@
         <p>The <i>solve quadratic</i> subgraph is just a wrapper for a custom node. The function could be expressed in
             shader graph nodes, but I find it adds needless complexity for what's fairly simple when expressed in code:
         </p>
-        <pre><code>float s = sqrt(b * b - 4 * a * c);
-    HasRealSolution = s &gt; 0.0 &amp;&amp; a != 0.0;
-    x1 = (-b + s) / (2 * a);
-    x2 = (-b - s) / (2 * a);</code></pre>
+<pre><code>float s = sqrt(b * b - 4 * a * c);
+HasRealSolution = s &gt; 0.0 &amp;&amp; a != 0.0;
+x1 = (-b + s) / (2 * a);
+x2 = (-b - s) / (2 * a);
+</code></pre>
 
         <img src="/article-data/refraction-sphere/rayPositionSubgraph.webp" width="492" height="172">
         <p><i>Ray position at time</i> is calculated simply enough and just as you'd expect. Having even simple
@@ -295,8 +491,8 @@
         <p>Usefully HLSL has a built-in <code>refract</code> function so we can just wrap that up in a custom node. To
             handle the total internal reflection case, the built-in function returns <code>(0, 0, 0)</code>. Our
             wrapping node can detect that and provide a boolean:</p>
-        <code>Refracted = refract(Direction, SurfaceNormal, RefractiveIndex);
-    TotalInternalReflection = (Refracted == float3(0.0, 0.0, 0.0));</code>
+        <pre><code>Refracted = refract(Direction, SurfaceNormal, RefractiveIndex);
+TotalInternalReflection = (Refracted == float3(0.0, 0.0, 0.0));</code></pre>
 
         <img src="/article-data/refraction-sphere/cubemapSubgraph.webp" width="421" height="148">
 
@@ -368,37 +564,37 @@
         </p>
 
         <pre><code><span class="comment">// approximation of the Fresnel equation for reflectance</span>
-    <span class="comment">// based on https://graphics.stanford.edu/courses/cs148-10-summer/docs/2006--degreve--reflection_refraction.pdf</span>
-    float r0 = (n1 - n2) / (n1 + n2);
-    r0 *= r0;
+<span class="comment">// based on https://graphics.stanford.edu/courses/cs148-10-summer/docs/2006--degreve--reflection_refraction.pdf</span>
+float r0 = (n1 - n2) / (n1 + n2);
+r0 *= r0;
 
-    float cosX = abs(dot(normal, rayDirection));
+float cosX = abs(dot(normal, rayDirection));
 
-    if (abs(cosX) &lt; 0.0001)
+if (abs(cosX) &lt; 0.0001)
+{
+    reflectance = 1.0;
+    return;
+}
+
+if (n1 &gt; n2)
+{
+    float n = n1 / n2;
+    float sinT2 = n * n * (1.0 - cosX * cosX);
+
+    <span class="comment">// detect total internal reflection</span>
+    if (sinT2 &gt; 1.0)
     {
         reflectance = 1.0;
         return;
     }
 
-    if (n1 &gt; n2)
-    {
-        float n = n1 / n2;
-        float sinT2 = n * n * (1.0 - cosX * cosX);
+    cosX = sqrt(1.0 - sinT2);
+}
 
-        <span class="comment">// detect total internal reflection</span>
-        if (sinT2 &gt; 1.0)
-        {
-            reflectance = 1.0;
-            return;
-        }
+float x = 1.0 - cosX;
 
-        cosX = sqrt(1.0 - sinT2);
-    }
-
-    float x = 1.0 - cosX;
-
-    <span class="comment">// chained multiply is (probably) faster than pow(x, 5)</span>
-    reflectance = r0 + (1.0 - r0) * x*x*x*x*x;</code></pre>
+<span class="comment">// chained multiply is (probably) faster than pow(x, 5)</span>
+reflectance = r0 + (1.0 - r0) * x*x*x*x*x;</code></pre>
 
         <p>Although this is very close to physically accurate don't be afraid of adding in the ability to arbitrarily
             adjust things. Providing a slider whose value is added to this reflectance value makes tweaking an asset to

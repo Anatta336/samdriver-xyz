@@ -70,14 +70,14 @@
 <p>The wallTop tile can connect to other wallTop tiles in any of four directions. This both looks nice and emphasises the contiguity of the wall from the point of view of game mechanics. So we apply the standard techique of assigning powers of two to each direction to calculate the tile index that should be displayed:</p>
 
 <pre><code>function calcTileIndexFull(
- isAboveSame, isLeftSame,
- isBelowSame, isRightSame) {
-   var sum = 0;
-   if (isAboveSame) sum += 1;
-   if (isLeftSame)  sum += 2;
-   if (isBelowSame) sum += 4;
-   if (isRightSame) sum += 8;
-   return sum;
+  isAboveSame, isLeftSame,
+  isBelowSame, isRightSame) {
+    var sum = 0;
+    if (isAboveSame) sum += 1;
+    if (isLeftSame)  sum += 2;
+    if (isBelowSame) sum += 4;
+    if (isRightSame) sum += 8;
+    return sum;
 }</code></pre>
 
 <p>This works fine, except for one situation due to how the tiles are designed. If a wallTop has connections in every direction it is drawn as if it's part of a + shaped arrangement, but that may not be the case.</p>
@@ -105,12 +105,12 @@
 <p>Because only one side of the walls are ever visible, wallSide needs far fewer variations than wallTop. Looking closely you can see that the wallSides that are exposed to open air have slightly lightened edges to the bricks. It's a subtle effect but adds a lot to the feeling of the finished dungeon looking like a solid object and not just a series of tiles. Because we only have two neighbours to consider for wallSide, there only need to be 2<sup>2</sup> = 4 variations.</p>
 
 <pre><code>function calcTileIndexSide(
- isLeftSame,
- isRightSame) {
-   var sum = 0;
-   if (isLeftSame) sum += 1;
-   if (isRightSame) sum += 2;
-   return sum;
+  isLeftSame,
+  isRightSame) {
+    var sum = 0;
+    if (isLeftSame) sum += 1;
+    if (isRightSame) sum += 2;
+    return sum;
 }</code></pre>
 
 <h2>Random Variation</h2>
@@ -121,38 +121,38 @@
 <h2>Tile Picking</h2>
 <p>Putting that all together we get the code to generate a tileIndex from our map.</p>
 <pre><code>if (typeIndex === WALLTOP) {
-   tileIndex = calcTileIndexFull(
-      tileMap.isWallTop(x, y - 1),
-      tileMap.isWallTop(x - 1, y),
-      tileMap.isWallTop(x, y + 1),
-      tileMap.isWallTop(x + 1, y)
-   );
+  tileIndex = calcTileIndexFull(
+    tileMap.isWallTop(x, y - 1),
+    tileMap.isWallTop(x - 1, y),
+    tileMap.isWallTop(x, y + 1),
+    tileMap.isWallTop(x + 1, y)
+  );
 }
 else if (typeIndex == WALLSIDE) {
-   tileIndex = calcTileIndexSide(
-      tileMap.isAnyWall(x - 1, y),
-      tileMap.isAnyWall(x + 1, y)
-   );
-   if (tileIndex === 3) {
-      // we have multiple versions of WALLSIDE 3, pick one
-      tileIndex += Math.floor(randomVariation * WALLSIDE_FLAT_VARIATION_COUNT);
-   }
+  tileIndex = calcTileIndexSide(
+    tileMap.isAnyWall(x - 1, y),
+    tileMap.isAnyWall(x + 1, y)
+  );
+  if (tileIndex === 3) {
+    // we have multiple versions of WALLSIDE 3, pick one
+    tileIndex += Math.floor(randomVariation * WALLSIDE_FLAT_VARIATION_COUNT);
+  }
 }
-else { // floor
-   // there are multiple versions of FLOOR tiles, pick one
-   tileIndex = Math.floor(randomVariation * FLOOR_VARIATION_COUNT);
+else {
+  // there are multiple versions of FLOOR tiles, pick one
+  tileIndex = Math.floor(randomVariation * FLOOR_VARIATION_COUNT);
 }</code></pre>
 
 <p>To draw the tile we use the same function as in the original article, but with the y source position decided by the <code>typeIndex</code> which simply selects which row from the tilesheet we want to pick from.</p>
 <pre><code>function draw(context, typeIndex, tileIndex, x, y) {
-   xStart = tileIndex * TILESIZE;
-   yStart = typeIndex * TILESIZE;
-   context.drawImage(sheetImage,
-      xStart, yStart,
-      TILESIZE, TILESIZE,
-      x, y,
-      TILESIZE, TILESIZE
-   );
+  xStart = tileIndex * TILESIZE;
+  yStart = typeIndex * TILESIZE;
+  context.drawImage(sheetImage,
+    xStart, yStart,
+    TILESIZE, TILESIZE,
+    x, y,
+    TILESIZE, TILESIZE
+  );
 }</code></pre>
 
 <img class="pixel" id="tile-sheet" src="/article-data/dungeon-tiles/tileSheet.webp">

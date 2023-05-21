@@ -49,8 +49,8 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
   BrightPoint brightest = MakeBrightPoint(
     int2(0,0), float3(0,0,0), _luminanceThreshold
   );
-  for (int y = 0; y < GROUP_SIZE; ++y)
-  for (int x = 0; x < GROUP_SIZE; ++x)
+  for (int y = 0; y &lt; GROUP_SIZE; ++y)
+  for (int x = 0; x &lt; GROUP_SIZE; ++x)
   {
     if (cachedPoint[x][y].luminance > brightest.luminance)
     {
@@ -113,8 +113,8 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
   // every thread examines a square of REGION_PER_THREAD x REGION_PER_THREAD texels
   int xStart = globalId.x * REGION_PER_THREAD;
   int yStart = globalId.y * REGION_PER_THREAD;
-  for (int y = yStart; y < yStart + REGION_PER_THREAD; ++y)
-  for (int x = xStart; x < xStart + REGION_PER_THREAD; ++x)
+  for (int y = yStart; y &lt; yStart + REGION_PER_THREAD; ++y)
+  for (int x = xStart; x &lt; xStart + REGION_PER_THREAD; ++x)
   {
     float3 colour = _sourceTexture[int2(x, y)];
     float luminance = CalculateLuminance(colour);
@@ -164,7 +164,7 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
   // There will still be at least 50% of threads inactive during this, with the
   // higher stride values having more inactive threads
   uint stride;
-  for (stride = 2; stride <= GROUP_SIZE; stride *= 2)
+  for (stride = 2; stride &lt;= GROUP_SIZE; stride *= 2)
   {
     if ((localId.x % stride) == 0)
     {
@@ -178,7 +178,7 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
   }
   // brightest in each row is now [0] of that row
 
-  for (stride = 2; stride <= GROUP_SIZE; stride *= 2)
+  for (stride = 2; stride &lt;= GROUP_SIZE; stride *= 2)
   {
     if (localId.x == 0 && (localId.y % stride) == 0)
     {
@@ -221,8 +221,8 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
   BrightPoint brightest = MakeBrightPoint(int2(0,0), float3(0,0,0), _luminanceThreshold);
   int xStart = globalId.x * REGION_PER_THREAD;
   int yStart = globalId.y * REGION_PER_THREAD;
-  for (int y = yStart; y < yStart + REGION_PER_THREAD; ++y)
-  for (int x = xStart; x < xStart + REGION_PER_THREAD; ++x)
+  for (int y = yStart; y &lt; yStart + REGION_PER_THREAD; ++y)
+  for (int x = xStart; x &lt; xStart + REGION_PER_THREAD; ++x)
   {
     float3 colour = _sourceTexture[int2(x, y)];
     float luminance = CalculateLuminance(colour);
@@ -237,7 +237,7 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
 
   // search for brightest in each row
   uint stride;
-  for (stride = 2; stride <= GROUP_SIZE; stride *= 2)
+  for (stride = 2; stride &lt;= GROUP_SIZE; stride *= 2)
   {
     if ((localId.x % stride) == 0)
     {
@@ -251,7 +251,7 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
   }
   // brightest in each row is now [0] of that row
 
-  for (stride = 2; stride <= GROUP_SIZE; stride *= 2)
+  for (stride = 2; stride &lt;= GROUP_SIZE; stride *= 2)
   {
     if (localId.x == 0 && (localId.y % stride) == 0)
     {

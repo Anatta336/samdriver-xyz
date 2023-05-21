@@ -25,3 +25,4 @@ for f in *.png; do cwebp -near_lossless 60 "$f" -o "${f%.png}.webp"; done
 ## TODO
 - [ ] Auto-generate outline on side of articles.
 - [ ] Increase prettiness.
+- [ ] Update Docker version to use Apache, to match server.

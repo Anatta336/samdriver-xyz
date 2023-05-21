@@ -18,7 +18,7 @@
 
 <h2>A Rocky Example</h2>
 <img class="pixel right" src="/article-data/neighbour-aware-tiles/fullStone.png" style="width: 240px; height: 240px;">
-<p>We'll be using parts of a tileset by <a href="http://www.retinaleclipse.com/">Agnes Heyer</a> (accessed via <a href="https://forums.tigsource.com/index.php?topic=14166.0">this forum post</a>.) I've only used a small part of the full set of tiles and other graphics they have released; the full thing is beautiful. The tileset is available under a <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license.</p>
+<p>We'll be using parts of a tileset by <a href="http://www.retinaleclipse.com/">Runar Heyer</a> (accessed via <a href="https://forums.tigsource.com/index.php?topic=14166.0">this forum post</a>.) I've only used a small part of the full set of tiles and other graphics he has released; the full thing is beautiful. The tileset is available under a <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license.</p>
 
 <p>These 16 tile variations are designed to join to other tiles directly above, below, to the left, and to the right of them. This means each tile will need to check its four direct neighbours to know what version it should appear as. This can be done with a towering if statement, but there is a far neater way.</p>
 
@@ -154,7 +154,7 @@
 
 <p>Click in the canvas above to toggle each grid cell and see the tile graphics get updated.</p>
 
-<p>Thanks again to <a href="http://www.retinaleclipse.com/">Agnes Heyer</a> for creating the tile images used throughout this article. The <a href="/article-data/neighbour-aware-tiles/tileDemo.js">Javascript source</a> for both this and the single tile demo is available. In accordance to the Share-Alike part of the <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license, these demos are released under the same license.</p>
+<p>Thanks again to <a href="http://www.retinaleclipse.com/">Runar Heyer</a> for creating the tile images used throughout this article. The <a href="/article-data/neighbour-aware-tiles/tileDemo.js">Javascript source</a> for both this and the single tile demo is available. In accordance to the Share-Alike part of the <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license, these demos are released under the same license.</p>
 
 <h2>Bitwise</h2>
 <p>Earlier I mentioned that we're using powers of two and that relationship to binary numbers. We've effectively been doing bitwise operations this whole time. This version of <code>calculateTileIndex</code> does the same as before but makes it more clear that we're messing around with bits rather than just adding up some numbers. I consider this bitwise version to be better code, but have used the addition version for the demo as I think it's friendlier to a broad audience.</p>

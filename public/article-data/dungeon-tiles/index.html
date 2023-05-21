@@ -54,12 +54,12 @@
 
 <p>Click in the image above above to toggle where the tops of walls should be.</p>
 
-<p class="aside">This demo uses tile graphics created by <a href="http://www.retinaleclipse.com/">Agnes Heyer</a> and released under the <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license. The <a href="/article-data/dungeon-tiles/dungeonTiles.js">Javascript source</a> is available. The original tileset graphics have been modified slightly, with the modified version available at the bottom of this article. In accordance with the Share-Alike terms, the demo is available under the same <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license.</p>
+<p class="aside">This demo uses tile graphics created by <a href="http://www.retinaleclipse.com/">Runar Heyer</a> and released under the <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license. The <a href="/article-data/dungeon-tiles/dungeonTiles.js">Javascript source</a> is available. The original tileset graphics have been modified slightly, with the modified version available at the bottom of this article. In accordance with the Share-Alike terms, the demo is available under the same <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license.</p>
 
 <p>This is a supplement to my past tutorial on <a href="/article/neighbour-aware-tiles">automatic tile selection</a> so it's best you read that first.</p>
 
 <h2>Practicalities</h2>
-<p>As is often the case, the neat theory doesn't apply quite so easily to real world situations. The technique presented in my <a href="/article/neighbour-aware-tiles">original article</a> works beautifully with a tileset that's designed in a particular way, but takes some adjustment to work with others. Let's go throught the process of automatically applying this dungeon tileset from <a href="http://www.retinaleclipse.com/">Agnes Heyer</a> to a generated or dynamic map.</p>
+<p>As is often the case, the neat theory doesn't apply quite so easily to real world situations. The technique presented in my <a href="/article/neighbour-aware-tiles">original article</a> works beautifully with a tileset that's designed in a particular way, but takes some adjustment to work with others. Let's go through the process of automatically applying this dungeon tileset from <a href="http://www.retinaleclipse.com/">Runar Heyer</a> to a generated or dynamic map.</p>
 
 <h2>Wall of two parts</h2>
 <p>You'll notice the walls in this tileset are made of two separate tiles, one for the side and one for the top. Every wallTop has either another wallTop or a wallSide directly below it. We enforce this in code by defining the map firstly by the position of wallTops, then spawning wallSides in empty tiles below them.</p>

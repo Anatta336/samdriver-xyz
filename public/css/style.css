@@ -1,15 +1,18 @@
 body {
-    /* TODO: rather than setting a bunch of margin on header, section, article, footer set padding here */
-    background-color: #ffffff;
-    margin: 0 auto 0 auto;
-    border: 1px solid #b7b7b8;
-    max-width: 800px;
-
+    display: flex;
     font-family: 'Roboto', sans-serif;
     font-size: 1rem;
     font-weight: normal;
     font-style: normal;
+    box-sizing: border-box;
     color: #202020;
+    background: radial-gradient(farthest-corner at 90% 50%, #9bd5ff5e 0%, transparent 90%), radial-gradient(farthest-corner at 10% 10%,    #ff95a8 0%,    #b5adff 100%);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
 }
 
 /* for images or canvas elements that need "pixel" style rendering when scaled */
@@ -33,46 +36,58 @@ body {
 }
 
 nav {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: stretch;
     justify-content: center;
+}
+
+nav.article {
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    align-content: center;
+}
+
+nav.article a {
+    color: #1f4637;
+    padding: 10px;
+}
+
+nav.article a:hover,
+nav.article a:active {background: radial-gradient(farthest-corner at 90% 50%, #9bd5ff75 0%, transparent 90%), radial-gradient(farthest-corner at 10% 10%, #ff95a8 0%, #b5adff 100%);opacity: 100%;}
+
+nav a.home {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: stretch;
+    justify-content: center;
+    align-content: center;
+    padding: 10px;
+    height: 64px;
+    width: 78px;
+    gap: 3px;
+    opacity: 60%;
+    border-radius: 2px;
+    transition: background 0.3s, opacity 0.1s;
+    background: radial-gradient(farthest-corner at 90% 50%, #9bd5ff75 0%, transparent 90%), radial-gradient(farthest-corner at 10% 10%, #ff95a8 0%, #b5adff 100%);
+}
 
-    position: static;
-    width: 100%;
-
-    border-bottom: 1px solid #b7b7b8;
-    background: #ffffff;
+nav a.home .square {
+    display: block;
+    background-color: #ebebebc7;
+    width: 20px;
+    height: 17px;
 }
 
 nav a {
-    display: block;
-    flex-grow: 1;
-    width: auto;
-    max-width: 20ch;
-
     text-decoration: none;
-    color: #4a4a4a;
-    background-color: #f0f0f0;
-
-    font-size: 1.0rem;
-
-    padding: 0.9em 1.5em;
-    margin: 0;
-
-    text-transform: uppercase;
-    text-align: center;
-    font-weight: normal;
-    font-size: 1.2rem;
-    letter-spacing: 0.2em;
-
-    -webkit-transition: background-color 0.3s;
-    transition: background-color 0.3s;
-}
-
-nav a:nth-child(2) {
-    background-color: #f9f9f9;
 }
 
 nav a:hover,
@@ -154,26 +169,23 @@ aside {
     margin-bottom: 2rem;
 }
 
-.article-link-block {
-    display: block;
+nav .article-link-block {
+    flex: 1 1 400px;
+    display: flex;
     text-decoration: none;
     max-width: 380px;
-
-    margin-top: 0;
-    margin-bottom: 0;
-    margin-left: auto;
-    margin-right: auto;
-
     padding: 45px;
-
-    background-color: #f0f0f0;
+    background-color: #ebebeb70;
     -webkit-transition: background-color 0.3s;
     transition: background-color 0.3s;
-    border-bottom: 1px solid #b7b7b8;
+    border-radius: 2px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px;
 }
 
 .article-link-block:nth-child(2n) {
-    background-color: #f9f9f9;
 }
 
 .article-link-block:last-child {
@@ -191,12 +203,10 @@ aside {
     text-decoration: none;
     text-align: center;
     color: #000000;
-    font-weight: normal;
+    font-weight: bold;
     font-size: 1.2rem;
-    letter-spacing: 0.2em;
-
-    margin-top: 1rem;
-    margin-bottom: 1.5rem;
+    letter-spacing: 0.25em;
+    margin: 0;
 }
 
 .article-link-block p {
@@ -205,19 +215,21 @@ aside {
     font-style: normal;
     text-decoration: none;
     color: #202020;
+    flex: 1 0 auto;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    justify-content: flex-end;
 }
 
 header {
     display: block;
-    width: 100%;
-    max-width: 450px;
-    padding: 0;
-    margin: 5em auto;
-    background-color: #ffffff;
-
-    color: #35594b;
+    margin-bottom: 20px;
+    background-color: #ebebeb70;
+    color: #1f4637;
     font-family: 'Roboto', sans-serif;
-
+    padding: 10px 20px;
 }
 
 header h1 {
@@ -227,8 +239,8 @@ header h1 {
     text-align: center;
     letter-spacing: 0.35em;
     text-transform: uppercase;
-
     margin: 1em 0;
+    font-weight: bold;
     padding: 0;
 }
 
@@ -236,16 +248,17 @@ header p {
     display: block;
     margin: 1em 0;
     padding: 0;
-
     text-align: center;
     font-size: 1rem;
-    font-style: italic;
 }
 
 article {
     display: block;
-    margin: 0;
-    padding: 0 60px 0;
+    margin: 0 auto;
+    padding: 40px 40px;
+    max-width: 800px;
+    background-color: #ebebeb70;
+    border-radius: 2px;
 }
 
 section {
@@ -255,14 +268,19 @@ section {
 }
 
 footer {
+    flex: 1 0 auto;
+    display: flex;
+    margin: 0;
+    margin-top: 20px;
     font-size: 0.6rem;
     font-weight: normal;
     font-style: normal;
     color: #4a4a4a;
     text-align: right;
-
-    padding: 0 30px;
-    border-top: 1px solid #b7b7b8;
+    padding: 10px 20px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
 }
 
 @media (max-width: 800px) {
@@ -292,12 +310,20 @@ article a:hover {
     color: #56afd0;
 }
 
+math {
+    display: block;
+    background-color: #a0c0cc;
+    padding: 15px 20px 15px 15px;
+    border-left: 6px solid #457cb3;
+    margin: 10px 0;
+}
+
 article>p,
 article>ul,
 article>ol,
-article>table {
-    margin-top: 0;
-    margin-bottom: 40px;
+article>table
+article>math {
+    margin: 20px 0;
 }
 
 article h1,
@@ -305,15 +331,14 @@ article h2 {
     text-transform: uppercase;
     text-decoration: none;
     text-align: left;
-    color: #000000;
+    color: #202020;
     font-weight: normal;
-    font-size: 0.95rem;
-    letter-spacing: 0.2em;
-
+    font-size: 1.1rem;
+    letter-spacing: 0.25em;
     clear: both;
     margin-top: 3rem;
+    font-weight: bold;
     margin-bottom: 1rem;
-    border-bottom: solid 1px #b7b7b8;
 }
 
 article canvas,
@@ -321,15 +346,10 @@ article img,
 article video {
     display: block;
     padding: 0;
-
     max-width: 100%;
     width: auto;
     height: auto;
-
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 10px;
-    margin-bottom: 10px;
+    margin: 10px auto;
 }
 
 article canvas {
@@ -367,8 +387,7 @@ article iframe {
 
     margin-left: auto;
     margin-right: auto;
-    margin-top: 10px;
-    margin-bottom: 10px;
+    margin: 10px 0;
 }
 
 img figure {
@@ -380,8 +399,7 @@ img figure {
 
     margin-left: auto;
     margin-right: auto;
-    margin-top: 5px;
-    margin-bottom: 30px;
+    margin: 10px 0;
 
     padding: 0;
 }
@@ -392,10 +410,7 @@ img figure {
     clear: left;
     max-width: 500px;
 
-    margin-top: 0;
-    margin-bottom: 10px;
-    margin-left: 0;
-    margin-right: 40px;
+    margin: 10px 40px 10px 0;
 }
 
 .right {
@@ -404,19 +419,13 @@ img figure {
     clear: right;
     max-width: 500px;
 
-    margin-top: 0;
-    margin-bottom: 10px;
-    margin-left: 20px;
-    margin-right: 0;
+    margin: 10px 0 10px 40px;
 }
 
 /* within a figure only needs margin to separate from caption */
 figure img,
 figure canvas {
-    margin-top: 0;
-    margin-bottom: 10px;
-    margin-left: 0;
-    margin-right: 0;
+    margin: 0 0 10px;
 }
 
 /* -- Adjust images for narrow displays, bringing in the floaters */
@@ -429,10 +438,7 @@ figure canvas {
         clear: none;
         max-width: 100%;
 
-        padding-top: 15px;
-        padding-bottom: 15px;
-        padding-left: 0px;
-        padding-right: 0px;
+        padding: 15px 0;
 
         margin-left: auto;
         margin-right: auto;
@@ -455,7 +461,6 @@ figure canvas {
     padding-bottom: 15px;
 }
 
-/* .image-box>img, .image-box>canvas, .image-box>figure */
 .image-box>* {
     padding: 0;
     margin: 8px;
@@ -483,8 +488,14 @@ small {
 footer a:link,
 footer a:visited {
     color: #1e6a9a;
+    padding: 10px;
+    text-decoration: none;
 }
 
 footer a:hover {
     color: #56afd0;
+}
+
+footer address {
+    font-style: normal;
 }

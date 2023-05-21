@@ -22,9 +22,10 @@ class Renderer
 
         $html .= '<header>';
         $html .= '<h1>Articles and Tutorials</h1>';
-        $html .= '<p>Articles and tutorials on game and web development</p>';
+        $html .= '<p>Game and web development</p>';
         $html .= '</header>';
 
+        $html .= '<nav>';
         foreach ((new ArticleList())->getArticles() as $article) {
             if (empty($article) || !$article->exists()) {
                 continue;
@@ -35,6 +36,7 @@ class Renderer
             $html .= '<p>'.htmlentities($article->getDescription()).'</p>';
             $html .= '</a>';
         }
+        $html .= '</nav>';
 
         // <footer>
         $html .= Footer::render();

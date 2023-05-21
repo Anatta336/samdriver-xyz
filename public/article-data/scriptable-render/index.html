@@ -15,7 +15,7 @@
     <article>
 <p>As the name suggests, a core feature of Unity's scriptable render pipeline (SRP) is that we can write our own features and add them in without needing to make a whole rendering system from scratch. When I was learning how to make use of this I couldn't find a barebones example to build from, so I'll try to provide one here. Unity does allow you to create a Render Feature asset which provides boilerplate code, but it's not clear to a learner how to make that actually do anything.</p>
 
-<img src="/article-data/scriptable-render/splitView.png" width="687" height="460">
+<img src="/article-data/scriptable-render/splitView.webp" width="687" height="460">
 
 <p class="aside">This tutorial is written using Unity <b>2019.3</b> and targetting the universal render pipeline. We'll not use any experimental features so it should continue to work in future versions. If you're using an earlier version you'll likely need to make some changes. It'll not work at all if you're not using one of the scriptable render pipelines, and may need some tweaking for the HDRP.</p>
 
@@ -188,26 +188,26 @@ class MyBlitRenderPass : ScriptableRenderPass
 <h1>Using our Feature</h1>
 <p>With those files now in the project we can tell the SRP to use the new feature we've just defined.</p>
 
-<img src="/article-data/scriptable-render/addFeature.png" width="761" height="285">
-<img class="right" src="/article-data/scriptable-render/featuresMenu.png" width="250" height="50">
+<img src="/article-data/scriptable-render/addFeature.webp" width="761" height="285">
+<img class="right" src="/article-data/scriptable-render/featuresMenu.webp" width="250" height="50">
 <p>Any project using a scriptable render pipeline will have a renderer asset. Select that and the inspector will show a list of renderer features (which is probably empty.) Click the + symbol and Unity will find anything that extends <code>ScriptableRendererFeature</code> and offer to add that feature to the renderer.</p>
 
-<img class="right" src="/article-data/scriptable-render/featureSettings.png" width="328" height="377">
+<img class="right" src="/article-data/scriptable-render/featureSettings.webp" width="328" height="377">
 <p>Now that the feature is added to the renderer you'll see the contents of its <code>settings</code> field available for modification. This example feature needs a material in order to do anything useful. I've made a colour inversion effect in the shader graph. Because it's being used to blit rather than to render a mesh it uses the unlit master for output and a texture with an exposed reference <code>_MainTex</code> as input.</p>
 
-<img src="/article-data/scriptable-render/shaderGraph.png" style="max-width: 100%; height: auto;">
+<img src="/article-data/scriptable-render/shaderGraph.webp" style="max-width: 100%; height: auto;">
 
 <p>Once the feature is set up with a material you should immediately see it in effect - our modified SRP is used to render both the shaded scene view and the game view.</p>
 
 <div class="image-box">
-	<img src="/article-data/scriptable-render/before.png" alt="A simple Unity scene" style="width: 330px; height: 262px;">
-	<img src="/article-data/scriptable-render/after.png" alt="A simple Unity scene but the colours and lighting appear unnatural because they have been inverted" style="width: 330px; height: 262px;">
+	<img src="/article-data/scriptable-render/before.webp" alt="A simple Unity scene" style="width: 330px; height: 262px;">
+	<img src="/article-data/scriptable-render/after.webp" alt="A simple Unity scene but the colours and lighting appear unnatural because they have been inverted" style="width: 330px; height: 262px;">
 </div>
 
 <h1>Frame Debug</h1>
 <p>When you're messing around with rendering Unity's Frame Debug tool is very useful for understanding what's going on. You can access it from Window &gt; Analysis &gt; Frame Debugger.</p>
 
-<img src="/article-data/scriptable-render/frameDebug.png" style="width: 339px; height: 251px;">
+<img src="/article-data/scriptable-render/frameDebug.webp" style="width: 339px; height: 251px;">
 
 <p>Your frame debugger may have significantly more steps in it than shown here. I've turned off anti-aliasing and shadows to keep it simple for this example. The thing to notice is that the feature we created is now slotted into the renderer, complete with the not very descriptive "My custom pass" label.</p>
 

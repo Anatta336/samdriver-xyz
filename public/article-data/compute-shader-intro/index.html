@@ -15,9 +15,9 @@
     <article>
 <p>Unity's scriptable render pipeline system lets us add new features to the renderer relatively painlessly. <a href="/article/scriptable-render">A previous article explored the basics of creating a custom RendererFeature</a>, now let's add in a compute shader and <code>DrawProceduralIndirect</code> to make an exaggerated lens flare effect. We'll be working with Unity's Universal Render Pipeline (URP) and its forward renderer, although the general principles will apply elsewhere too.</p>
 
-<video width="488" height="468" autoplay loop poster="/article-data/compute-shader-intro/scene-488x468.png">
+<video width="488" height="468" autoplay loop poster="/article-data/compute-shader-intro/scene-488x468.webp">
 	<source src="/article-data/compute-shader-intro/scene-488x468.webm" type='video/webm; codecs="vp9.0, vorbis"'>
-  <img src="/article-data/compute-shader-intro/scene-488x468.png" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit star shaped lens flares." width="488" height="468">
+  <img src="/article-data/compute-shader-intro/scene-488x468.webp" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit star shaped lens flares." width="488" height="468">
 </video>
 
 <h1>Compatibility</h1>
@@ -271,11 +271,11 @@ v2f vert (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 <p>I'll skip listing the functions that produce position and UV values based on vertexID as there's not much to explain there. Feel free to check the full source linked below if you're interested.</p>
 
 <h1>An Overdraw Nightmare</h1>
-<img src="/article-data/compute-shader-intro/scene-every-pixel.png" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit very bright star shaped lens flares." width="507" height="473">
+<img src="/article-data/compute-shader-intro/scene-every-pixel.webp" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit very bright star shaped lens flares." width="507" height="473">
 
 <p>We now have something that does what we set out to do. But it seems to be causing some worrying performance problems for such a simple scene. Let's put it through <a href="https://renderdoc.org/">RenderDoc</a> to see what's going on.</p>
 
-<img src="/article-data/compute-shader-intro/every-pixel-performance.png" alt="Screenshot of timing analysis from the RenderDoc utility. DrawInstancedDirect has a much larger duration number than the other entries." width="567" height="218">
+<img src="/article-data/compute-shader-intro/every-pixel-performance.webp" alt="Screenshot of timing analysis from the RenderDoc utility. DrawInstancedDirect has a much larger duration number than the other entries." width="567" height="218">
 
 <p>Drawing the lens flares is taking around 98% of the total frame's render time. Oops. The problem isn't that they're complex to draw. Drawing 27k triangles isn't that much either. The problem is there's a huge amount of overlapping. Almost every pixel around the flares is maxing out the overdraw count given by RenderDoc.</p>
 
@@ -365,18 +365,18 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
   }
 }</code></pre>
 
-<img class="right" src="/article-data/compute-shader-intro/group-32-scene.png" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit scattered and faint star shaped lens flares." width="233" height="376">
+<img class="right" src="/article-data/compute-shader-intro/group-32-scene.webp" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit scattered and faint star shaped lens flares." width="233" height="376">
 
 <p>Once we have every pixel's luminance stored we'll have just one thread look through them all and pick the brightest. So we check <code>localId</code> and have all but one thread <code>return;</code>. Stopping most threads but leaving one running is generally not a great thing to do. The way GPUs work mean the other threads can't be used to do anything else and are going to be wasted while the one remaining thread continues its work. In this case it'll not be a significant performance problem, but adopting a more parallel-friendly algorithm would be a good optimisation.</p>
 
 <p>The process of finding the brightest is straightforward. The single remaining thread iterates through every item in <code>cachedLuminance</code> and keeps track of the highest value. If we do find a sufficiently bright pixel its position is reconstructed and it's added to the same <code>_brightPoints</code> buffer as before.</p>
 
-<img src="/article-data/compute-shader-intro/group-32-performance.png" alt="Screenshot of timing analysis from the RenderDoc utility. DrawInstancedDirect now has a much smaller time cost, but the Dispatch entry has increased." width="568" height="218">
+<img src="/article-data/compute-shader-intro/group-32-performance.webp" alt="Screenshot of timing analysis from the RenderDoc utility. DrawInstancedDirect now has a much smaller time cost, but the Dispatch entry has increased." width="568" height="218">
 
 <p>The rest of the process remains the same but now there's far fewer bright points generated. Sure enough drawing is much faster and our compute shader is significantly slower than before. The overall performance is greatly improved though, with total frame time around 8% of previously.</p>
 
 <h1>Optimisation Tweaking</h1>
-<img src="/article-data/compute-shader-intro/group-8-performance.png" alt="Screenshot of timing analysis from the RenderDoc utility. Both DrawInstancedDirect and Dispatch have reduced time cost." width="568" height="218">
+<img src="/article-data/compute-shader-intro/group-8-performance.webp" alt="Screenshot of timing analysis from the RenderDoc utility. Both DrawInstancedDirect and Dispatch have reduced time cost." width="568" height="218">
 
 <p>Earlier we talked about how thread group size can affect performance. In this case reducing the group size to 8x8 (and increasing the number of groups dispatched so it still covers the whole image) causes a significant increase in speed on my machine. Even though we end up drawing more flares the total frame time is about 50% of what it was with the 32 group size.</p>
 
@@ -407,9 +407,9 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
 
 <p>For a closer look at measuring performance and improving this algorithm, see <a href="/article/optimise-compute-shader">this follow-up article</a>.</p>
 
-<video width="488" height="468" autoplay loop poster="/article-data/compute-shader-intro/scene-488x468.png">
+<video width="488" height="468" autoplay loop poster="/article-data/compute-shader-intro/scene-488x468.webp">
 	<source src="/article-data/compute-shader-intro/scene-488x468.webm" type='video/webm; codecs="vp9.0, vorbis"'>
-  <img src="/article-data/compute-shader-intro/scene-488x468.png" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit star shaped lens flares." width="488" height="468">
+  <img src="/article-data/compute-shader-intro/scene-488x468.webp" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit star shaped lens flares." width="488" height="468">
 </video>
 
 <h1>Further Considerations</h1>

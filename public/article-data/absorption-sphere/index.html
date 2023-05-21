@@ -18,8 +18,8 @@
             account for the material of the sphere absorbing any of the light. Here we'll explore how to simulate that
             effect so that the sphere itself can take on a colour.</p>
 
-        <a href="/article-data/absorption-sphere/absorbHeader.png">
-            <img src="/article-data/absorption-sphere/absorbHeader.png"
+        <a href="/article-data/absorption-sphere/absorbHeader.webp">
+            <img src="/article-data/absorption-sphere/absorbHeader.webp"
                 width="1323"
                 height="694"
                 alt="Computer generated image of a glass sphere in a simple scene. The surrounding scene can be seen in the sphere through a combination of reflection and refraction, with a green tint."
@@ -37,7 +37,7 @@
             has to do with matching energy levels in molecules&mdash;but what is important to us is that absorption is
             always about certain wavelengths of light being reduced.</p>
 
-        <img src="/article-data/absorption-sphere/glassOfTea.jpg"
+        <img src="/article-data/absorption-sphere/glassOfTea.webp"
             width="640"
             height="440"
             alt="Photograph of a glass filled with tea. The light passing through the tea has taken on a deep orange colour."
@@ -81,7 +81,7 @@
             it's not a linear relationship. Graph generated with the always useful
             <a href="https://www.desmos.com/calculator">Desmos graphing calculator</a>.</p>
 
-        <img src="/article-data/absorption-sphere/transmittanceByPathLength.png"
+        <img src="/article-data/absorption-sphere/transmittanceByPathLength.webp"
             width="479"
             height="340"
             alt="Graph of ransmittance and path length. As path length increases the transmittance decreases. The curve never quite reaches zero."
@@ -96,8 +96,8 @@
         <p>Combining this with our understanding that light absorption can be simulated by reducing the value of
             individual components we can put together a shader subgraph.</p>
 
-        <a href="/article-data/absorption-sphere/beersLawSubgraph.png">
-            <img src="/article-data/absorption-sphere/beersLawSubgraph.png"
+        <a href="/article-data/absorption-sphere/beersLawSubgraph.webp">
+            <img src="/article-data/absorption-sphere/beersLawSubgraph.webp"
                 width="1232"
                 height="323"
                 alt="Shader graph that implements Beer's Law."
@@ -108,8 +108,8 @@
         <p>By reusing the ray-vs-sphere subgraph from a <a href="/article/sphere-refraction">previous article</a> we can
             create a simple effect of a sphere that absorbs light passing through it.</p>
 
-        <a href="/article-data/absorption-sphere/absorbOnlyGraph.png">
-            <img src="/article-data/absorption-sphere/absorbOnlyGraph.png"
+        <a href="/article-data/absorption-sphere/absorbOnlyGraph.webp">
+            <img src="/article-data/absorption-sphere/absorbOnlyGraph.webp"
                 width="1501"
                 height="474"
                 alt="Shader graph that models light being absorbed as it passes through a sphere."
@@ -121,8 +121,8 @@
             as we enable the <i>opaque texture</i> option.) The absorption effect is applied to the scene colour and
             simply passed as the output colour for the shader.</p>
 
-        <a href="/article-data/absorption-sphere/absorbOnlySphere.png">
-            <img src="/article-data/absorption-sphere/absorbOnlySphere.png"
+        <a href="/article-data/absorption-sphere/absorbOnlySphere.webp">
+            <img src="/article-data/absorption-sphere/absorbOnlySphere.webp"
                 width="1193"
                 height="675"
                 alt="Computer generated image of a translucent red sphere."
@@ -133,8 +133,8 @@
         <p>We can also integrate absorption into the <a href="/article/sphere-refraction">refraction and reflection shader</a>
             we made during that previous article.</p>
 
-        <a href="/article-data/absorption-sphere/basicAbsorbGraph.png">
-            <img src="/article-data/absorption-sphere/basicAbsorbGraph.png"
+        <a href="/article-data/absorption-sphere/basicAbsorbGraph.webp">
+            <img src="/article-data/absorption-sphere/basicAbsorbGraph.webp"
                 width="2470"
                 height="582"
                 alt="Shader graph modelling one pass of light passing through a translucent sphere."
@@ -150,8 +150,8 @@
             scene. Notice that the colour from the ray that's reflected off the sphere's surface isn't affected by
             absorption, as that ray never passed through the absorbing medium.</p>
 
-        <a href="/article-data/absorption-sphere/bouncedAbsorbGraph.png">
-            <img src="/article-data/absorption-sphere/bouncedAbsorbGraph.png"
+        <a href="/article-data/absorption-sphere/bouncedAbsorbGraph.webp">
+            <img src="/article-data/absorption-sphere/bouncedAbsorbGraph.webp"
                 width="2479"
                 height="1362"
                 alt="A more complex shader graph modelling multiple passes of light through a translucent sphere."
@@ -171,7 +171,7 @@
             <code>(0.0, 1.0, 1.0)</code>. When using a colour wheel you'll notice this is on the opposite side of the
             hue circle.</p>
 
-        <img src="/article-data/absorption-sphere/oppositeOfRed.png"
+        <img src="/article-data/absorption-sphere/oppositeOfRed.webp"
             width="233"
             height="460"
             alt="A colour wheel demonstrating the colour chosen to be absorbed."
@@ -181,8 +181,8 @@
             often good to pick an absorption colour that's not at maxium saturation. That way with a sufficiently long
             path length (or high absorption coefficient) eventually all wavelengths of light would be absorbed.</p>
 
-        <a href="/article-data/absorption-sphere/colaSphere.png">
-            <img src="/article-data/absorption-sphere/colaSphere.png"
+        <a href="/article-data/absorption-sphere/colaSphere.webp">
+            <img src="/article-data/absorption-sphere/colaSphere.webp"
                 width="981"
                 height="661"
                 alt="Image of a translucent sphere, coloured a deep reddish brown and reminiscent of a cola drink."

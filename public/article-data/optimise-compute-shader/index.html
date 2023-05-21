@@ -77,11 +77,11 @@ brightsCompute.Dispatch(...);
 Profiling.Profiler.EndSample();
 </code></pre>
 
-<img class="right" src="/article-data/optimise-compute-shader/renderDocLaunch.png" alt="Screenshot of selecting the Launch Application option from RenderDoc's File menu." width="251" height="353">
+<img class="right" src="/article-data/optimise-compute-shader/renderDocLaunch.webp" alt="Screenshot of selecting the Launch Application option from RenderDoc's File menu." width="251" height="353">
 
 <p>Instead we'll be using <a href="https://renderdoc.org/">RenderDoc</a> to let us poke around at what is happening on the graphics card, at least on an abstracted level. To get started we'll need to make a standalone build of our "game" from within Unity, then launch it through RenderDoc. Once Unity is done building, select Launch Application from RenderDoc's File menu. Over on the right of the window you should see a field to select your executable. The other options can generally be left as-is, so just click Launch.</p>
 
-<img src="/article-data/optimise-compute-shader/renderDocExecutable.png" alt="Screenshot of RenderDoc's interface for selecting an executable path. It has been used to select BrightSpot.exe" width="507" height="144">
+<img src="/article-data/optimise-compute-shader/renderDocExecutable.webp" alt="Screenshot of RenderDoc's interface for selecting an executable path. It has been used to select BrightSpot.exe" width="507" height="144">
 
 <p class="aside">You're not limited to putting your own applications through RenderDoc. It can be fiddly to get working on some games, but you can have an interesting time looking at how other people are doing their rendering.</p>
 
@@ -89,11 +89,11 @@ Profiling.Profiler.EndSample();
 
 <p>There's a lot of information available from RenderDoc and I'll not even attempt to go through it here. We're just using one feature for now. Over on the left should be the Event Browser that lists in order all the rendering events from the frame you captured. When you click the clock icon RenderDoc will run the events again and use GPU-based timing to measure how long they each take. The result will appear next to each event, measured in &micro;s (each is one millionth of a second, so you can afford to spend 16,666&micro;s on a frame before dropping below 60FPS.) Notice that the measured value will vary a bit each time you click, so it's good to take a few measurements and average them.</p>
 
-<img src="/article-data/optimise-compute-shader/renderDocEventBrowser.png" alt="Screenshot of RenderDoc's Event Browser interface. The clock icon is highlighted" width="603" height="269">
+<img src="/article-data/optimise-compute-shader/renderDocEventBrowser.webp" alt="Screenshot of RenderDoc's Event Browser interface. The clock icon is highlighted" width="603" height="269">
 
 <p>In this case there's just one <code>Dispatch</code> event so that must be the compute shader we're interested in. But you can check by selecting that event, then looking in the Pipeline State tab. You can click the large CS icon near the top of that to see details on what the Compute Shader is doing. In this case it shows that it has a 1920&times;1080 texture (the source image we're searching for bright points) and a <code>RWStructuredBuffer</code> (the append buffer we'll write any bright points to.) We can also confirm that it's the <code>FindBrights</code> kernel in the <code>BrightsToBuffer</code> shader file. Try clicking around, you'll find you can see what data was in the buffer, what the texture looked like, and read a decompiled version of the shader.</p>
 
-<img src="/article-data/optimise-compute-shader/renderDocPipelineState.png" alt="Screenshot of RenderDoc's Pipeline State interface while our compute shader's dispatch event is selected" width="715" height="547">
+<img src="/article-data/optimise-compute-shader/renderDocPipelineState.webp" alt="Screenshot of RenderDoc's Pipeline State interface while our compute shader's dispatch event is selected" width="715" height="547">
 
 <h1>Multiple Samples per Thread</h1>
 <p>Now that we can measure performance let's try some alternative algorithms for finding bright pixels.</p>
@@ -138,7 +138,7 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
 <h1>Shared Search</h1>
 <p>Now let's go back to something closer to the original design so each thread is dealing with just one texel. But now we'll try to share out the task of finding the brightest pixel. Instead of having just one thread do it alone we can at least have some others help.</p>
 
-<img class="right" src="/article-data/optimise-compute-shader/strideProcess.png" width="461" height="239" alt="A diagram showing a set of pixels cascading
+<img class="right" src="/article-data/optimise-compute-shader/strideProcess.webp" width="461" height="239" alt="A diagram showing a set of pixels cascading
 down through several stages of comparisons until the brightest is found. It's hard to describe in text, sorry.">
 <p>As a first step we can have all the even numbered threads (0, 2, 4, 6, ...) compare their brightness to the thread on their right. If their neighbour's point is brighter, use it to replace our own. We now know that the brightest pixel in the whole row is definitely in one of the even numbered threads. We can repeat that process but using just half of those threads (0, 4, ...) and now looking at the neighbour from the previous stage.</p>
 
@@ -280,9 +280,9 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
 
 <p>I think that's about as good as we'll get for now. We can try tweaking the <code>REGION_PER_THREAD</code> and <code>GROUP_SIZE</code> values, but at least on this machine we're at the optimal balance. You might notice that as <code>GROUP_SIZE</code> is now <code>4</code> those search loops only iterate through twice. It's tempting to manually unroll them, as "everyone knows" conditionals and loops are bad for shaders. Fortunately you can add <code>[unroll]</code> immediately before a <code>for</code> loop and the compiler will do that work for us without making our code harder to maintain. Even more fortunately the compiler seems to do a decent job of judging when to automatically unroll loops even without prompting. Thanks, compilers.</p>
 
-<video width="675" height="452" autoplay loop poster="/article-data/optimise-compute-shader/scene-675x452.png">
+<video width="675" height="452" autoplay loop poster="/article-data/optimise-compute-shader/scene-675x452.webp">
 	<source src="/article-data/optimise-compute-shader/scene-675x452.webm" type='video/webm; codecs="vp9.0, vorbis"'>
-  <img src="/article-data/optimise-compute-shader/scene-675x452.png" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit star shaped lens flares." width="488" height="468">
+  <img src="/article-data/optimise-compute-shader/scene-675x452.webp" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit star shaped lens flares." width="488" height="468">
 </video>
 
 <p class="download">The base project is available via the <a href="/article/compute-shader-intro">original article</a>. A variation with each of these alternate shaders are available as branches on the GitHub project. The version with <a href="https://github.com/Anatta336/bright-spots/tree/multi-sample-no-search">many samples per thread and no cross-thread communication</a>. <a href="https://github.com/Anatta336/bright-spots/tree/single-sample-multi-search">One sample per thread but with shared search</a>. And finally, <a href="https://github.com/Anatta336/bright-spots/tree/multi-sample-multi-search">multiple samples per thread with shared search</a>.</p>

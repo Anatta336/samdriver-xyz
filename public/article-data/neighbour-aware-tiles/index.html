@@ -13,11 +13,11 @@
 
 <body>
     <article>
-<img src="/article-data/neighbour-aware-tiles/comparisonStone.png" class="pixel" style="width: 144px; height: 144px;">
+<img src="/article-data/neighbour-aware-tiles/comparisonStone.webp" class="pixel" style="width: 144px; height: 144px;">
 <p>Creating an attractive scene from tiles typically requires placing the tiles so that they join together with their neighbours. Compare these two simple platforms and see how the bottom version looks generally nicer thanks to tiles that are aware of and blend with their neighbours. This is easy enough to do if you're manually placing tiles, but if you're working with procedurally generated or dynamic map data you're going to need some programming to handle it. Here's a technique for doing that in a neat way.</p>
 
 <h2>A Rocky Example</h2>
-<img class="pixel right" src="/article-data/neighbour-aware-tiles/fullStone.png" style="width: 240px; height: 240px;">
+<img class="pixel right" src="/article-data/neighbour-aware-tiles/fullStone.webp" style="width: 240px; height: 240px;">
 <p>We'll be using parts of a tileset by <a href="http://www.retinaleclipse.com/">Runar Heyer</a> (accessed via <a href="https://forums.tigsource.com/index.php?topic=14166.0">this forum post</a>.) I've only used a small part of the full set of tiles and other graphics he has released; the full thing is beautiful. The tileset is available under a <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA</a> license.</p>
 
 <p>These 16 tile variations are designed to join to other tiles directly above, below, to the left, and to the right of them. This means each tile will need to check its four direct neighbours to know what version it should appear as. This can be done with a towering if statement, but there is a far neater way.</p>
@@ -58,7 +58,7 @@
 	}
 }
 </style>
-<img src="/article-data/neighbour-aware-tiles/numberedStone.png" id="tile-sheet" class="pixel" width="256px" height="24px">
+<img src="/article-data/neighbour-aware-tiles/numberedStone.webp" id="tile-sheet" class="pixel" width="256px" height="24px">
 
 <p>We can generate a number for each possible combination of neighbours. Variation 0 will be when there's no neighbours. If the above neighbour is present we add 1, for the left 2, for the below 4, and for the right we add 8. Why these numbers? You'll notice they're powers of two:</p>
 <ul style="list-style-type:none">
@@ -89,7 +89,7 @@
 	}
 	</style>
 	<p class="warning">Javascript is disabled or unavailable in your browser so the interactive example can't be shown. Here's a static version instead:</p>
-	<img src="/article-data/neighbour-aware-tiles/singleStatic.png" class="pixel" style="width: 156px; height: 156px;">
+	<img src="/article-data/neighbour-aware-tiles/singleStatic.webp" class="pixel" style="width: 156px; height: 156px;">
 	<p id="single-text">tileIndex = 4 + 8 = 12</p>
 </noscript>
 <div id="single-tile-div">

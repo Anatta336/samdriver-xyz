@@ -18,7 +18,7 @@ RewriteBase /
 # force to use HTTPS
 # [N] flag means after applying rule the whole set is run again
 RewriteCond %{HTTPS} !=on
-RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,NE,N]
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301,NE]
 Header always set Content-Security-Policy "upgrade-insecure-requests;"
 
 # individual redirects for all the old articles

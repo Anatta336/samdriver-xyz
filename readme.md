@@ -17,11 +17,11 @@ rsync -e "ssh" -av --info=progress2 --exclude ".git" ~/code/samdriver.xyz/ sdriv
 ```
 
 ## Converting Images
-Convert images to `webp` when possible.
+Convert images to `webp` when possible. This will work well in the majority of cases. Consider switching `-near_lossless 60` for `-q 80` (or similar) if dealing with photos. If images have important colour information encoded along with alpha (e.g. a 4 channel texture) add the `-exact` option.
 ```
 for f in *.png; do cwebp -near_lossless 60 "$f" -o "${f%.png}.webp"; done
 ```
 
 ## TODO
-- [ ] Auto-generate outline on side of article.
-- [ ] Re-encode images as webp.
+- [ ] Auto-generate outline on side of articles.
+- [ ] Increase prettiness.

@@ -296,12 +296,12 @@ footer {
     font-weight: normal;
     font-style: normal;
     text-align: right;
-    padding: 0 20px;
+    padding: 0 20px 5px;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: flex-end;
-    align-items: center;
     gap: 20px;
+    align-content: flex-end;
 }
 
 @media (max-width: 800px) {
@@ -519,4 +519,6 @@ footer a:hover {
 
 footer address {
     font-style: normal;
+    margin: 0;
+    padding: 0;
 }

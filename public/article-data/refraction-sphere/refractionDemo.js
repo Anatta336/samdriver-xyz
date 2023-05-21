@@ -21,7 +21,7 @@ var refraction = function() {
         var yCanvas = yClient - rect.top;
         // .width gives the internal width of canvas
         // .scrollWidth gives the width at which it is actually displayed
-        // the "client" position values are in same scale as scrollWidth 
+        // the "client" position values are in same scale as scrollWidth
         // and require scaling to true internal-to-canvas space.
         var scale = canvas.width / canvas.scrollWidth;
         return {
@@ -96,7 +96,7 @@ var refraction = function() {
                 // if within glass region, ignore
                 return;
             }
-            
+
             angleOfIncidence = Math.atan2(y - yMid, x - xMid);
             updateAngles();
             draw();
@@ -136,7 +136,7 @@ var refraction = function() {
             context.setLineDash([]);
             context.font = "1rem Roboto";
             context.fillStyle = '#000000';
-            
+
             // only draw angle arc when angle isn't extremely small
             if (Math.abs(angleOfIncidence - Math.PI) > 0.0001 && Math.abs(angleOfIncidence) > 0.0001)
             {
@@ -145,9 +145,9 @@ var refraction = function() {
                 context.stroke();
                 context.closePath();
             }
-            
+
             context.fillText("θ₁", xMid - 75, angleOfIncidence >= 0 ? yMid + 20 : yMid - 7);
-            
+
             // check small angle
             context.beginPath();
             context.arc(xMid, yMid, 50, 0, -angleOfTransmission, angleOfTransmission >= 0);
@@ -161,7 +161,7 @@ var refraction = function() {
             context.font = "1rem Roboto";
             context.fillStyle = '#000000';
             context.setLineDash([]);
-            
+
             // incident
             context.strokeStyle = '#ca5aa0';
             context.lineWidth = 5;
@@ -178,7 +178,7 @@ var refraction = function() {
                 xMid + 0.3 * canvasWidth * Math.cos(angleOfIncidence) + 8,
                 yMid + 0.3 * canvasWidth * Math.sin(angleOfIncidence)
             );
-            
+
             // transmission
             context.strokeStyle = '#ca5aa0';
             context.lineWidth = 4.75 * (1 - fresnel);
@@ -195,7 +195,7 @@ var refraction = function() {
                 xMid + 0.3 * canvasWidth * Math.cos(angleOfTransmission) + 8,
                 yMid - 0.3 * canvasWidth * Math.sin(angleOfTransmission)
             );
-                
+
             // reflection
             context.strokeStyle = '#ca5aa0';
             context.lineWidth = 0.25 + fresnel * 4.75;
@@ -225,7 +225,7 @@ var refraction = function() {
 
         function init() {
             context.setTransform(1, 0, 0, 1, 0, 0);
-            
+
             var isMouseDown = false;
 			canvas.addEventListener("mousedown", function(e) {
                 isMouseDown = true;
@@ -243,13 +243,13 @@ var refraction = function() {
 				onMouseDown(canvasPos.x, canvasPos.y);
             });
 		}
-		
+
 		window.addEventListener("load", function() {
             init();
             updateAngles();
             draw();
 		});
-    }("intoGlassCanvas");
+    }("into-glass-canvas");
 
     var intoAir = function(canvasName) {
         var canvas = document.getElementById(canvasName);
@@ -280,7 +280,7 @@ var refraction = function() {
                 // if within glass region, ignore
                 return;
             }
-            
+
             angleOfIncidence = Math.atan2(y - yMid, x - xMid);
             updateAngles();
             draw();
@@ -320,7 +320,7 @@ var refraction = function() {
             context.setLineDash([]);
             context.font = "1rem Roboto";
             context.fillStyle = '#000000';
-            
+
             // only draw angle arc when angle isn't extremely small
             if (Math.abs(angleOfIncidence - Math.PI) > 0.0001 && Math.abs(angleOfIncidence) > 0.0001)
             {
@@ -329,9 +329,9 @@ var refraction = function() {
                 context.stroke();
                 context.closePath();
             }
-            
+
             context.fillText("θ₁", xMid - 75, angleOfIncidence >= 0 ? yMid + 20 : yMid - 7);
-            
+
             if (fresnel < 1)
             {
                 context.beginPath();
@@ -347,7 +347,7 @@ var refraction = function() {
             context.font = "1rem Roboto";
             context.fillStyle = '#000000';
             context.setLineDash([]);
-            
+
             // incident
             context.strokeStyle = '#ca5aa0';
             context.lineWidth = 5;
@@ -364,7 +364,7 @@ var refraction = function() {
                 xMid + 0.3 * canvasWidth * Math.cos(angleOfIncidence) + 8,
                 yMid + 0.3 * canvasWidth * Math.sin(angleOfIncidence)
             );
-            
+
             if (fresnel < 1)
             {
                 // transmission
@@ -384,7 +384,7 @@ var refraction = function() {
                     yMid - 0.3 * canvasWidth * Math.sin(angleOfTransmission)
                 );
             }
-                
+
             // reflection
             context.strokeStyle = '#ca5aa0';
             context.lineWidth = 0.25 + fresnel * 4.75;
@@ -432,13 +432,13 @@ var refraction = function() {
 				onMouseDown(canvasPos.x, canvasPos.y);
             });
 		}
-		
+
 		window.addEventListener("load", function() {
             init();
             updateAngles();
             draw();
 		});
-    }("intoAirCanvas");
+    }("into-air-canvas");
 
     var circleInBox = function(canvasName) {
         var canvas = document.getElementById(canvasName);
@@ -511,7 +511,7 @@ var refraction = function() {
             context.arc(eyeX, midY, eyeSize * 0.3, -0.2 * Math.PI, 0.2 * Math.PI);
             context.stroke();
             context.closePath();
-            
+
             context.beginPath();
             context.arc(eyeX - eyeSize * 0.2, midY - eyeSize * 0.573, eyeSize * 0.6, 0.16 * Math.PI, 0.4 * Math.PI);
             context.stroke();
@@ -584,7 +584,7 @@ var refraction = function() {
 
             context.setLineDash([]);
         }
-        
+
         function draw() {
             clear(context);
 
@@ -621,7 +621,7 @@ var refraction = function() {
             updateIntersects();
             draw();
 		});
-    }("circleInBoxCanvas");
+    }("circle-in-box-canvas");
 
     var circleRefract = function(canvasName) {
         var canvas = document.getElementById(canvasName);
@@ -672,11 +672,11 @@ var refraction = function() {
                 2 * dotProduct(startRelativeToOrigin, velocity),
                 dotProduct(startRelativeToOrigin, startRelativeToOrigin) - (circleRadius * circleRadius)
             );
-            
+
             if (!intersects.hasSolution) {
                 return;
             }
-            
+
             var time;
             const minTime = 0.0001;
             if (intersects.x1 >= minTime && (intersects.x1 < intersects.x2 || intersects.x2 < minTime)) {
@@ -697,7 +697,7 @@ var refraction = function() {
             // other rays default to not being drawn
             entryToExitRay.start = false;
             exitToSceneRay.start = false;
-            
+
             // first ray starts slightly offset from eye, for aesthetics
             var offsetFromEye = eyeSize * 0.8;
             eyeToSurfaceRay.angle = angleOfFirst;
@@ -718,14 +718,14 @@ var refraction = function() {
 
             const entrySurfaceNormalAngle = Math.atan2(eyeToSurfaceRay.end.y - origin.y, eyeToSurfaceRay.end.x - origin.x);
             const entryIncidentAngle = angleAtoAngleB(entrySurfaceNormalAngle, eyeToSurfaceRay.angle - Math.PI);
-            
+
             const entryRefract = refract(entryIncidentAngle, refractiveIndexAir, refractiveIndexGlass);
             if (entryRefract.totalInternalReflection) {
                 return;
             }
 
             // with all the +/- Math.PI going on, would be nice to have a loopAngle function
-            
+
             entryToExitRay.start = eyeToSurfaceRay.end;
             entryToExitRay.angle = entryRefract.angleOfTransmission + (entrySurfaceNormalAngle - Math.PI);
 
@@ -733,7 +733,7 @@ var refraction = function() {
             if (!entryToExitRay.end) {
                 return;
             }
-            
+
             const exitInternalNormalAngle = Math.atan2(entryToExitRay.end.y - origin.y, entryToExitRay.end.x - origin.x) - Math.PI;
             const exitIncidentAngle = angleAtoAngleB(exitInternalNormalAngle, entryToExitRay.angle - Math.PI);
 
@@ -758,7 +758,7 @@ var refraction = function() {
             context.arc(eye.x, eye.y, eyeSize * 0.3, -0.2 * Math.PI, 0.2 * Math.PI);
             context.stroke();
             context.closePath();
-            
+
             context.beginPath();
             context.arc(eye.x - eyeSize * 0.2, midY - eyeSize * 0.573, eyeSize * 0.6, 0.16 * Math.PI, 0.4 * Math.PI);
             context.stroke();
@@ -787,13 +787,13 @@ var refraction = function() {
             context.stroke();
             context.fill();
         }
-        
+
         function draw() {
             clear(context);
 
             drawEye();
             drawCircle();
-            
+
             context.strokeStyle = '#ca5aa0';
             context.lineWidth = 5;
             context.beginPath();
@@ -835,5 +835,5 @@ var refraction = function() {
             updateRays(-0.12 * Math.PI);
             draw();
 		});
-    }("circleRefractCanvas");
+    }("circle-refract-canvas");
 }();

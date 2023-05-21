@@ -18,7 +18,7 @@ class Renderer
         // <head>
         $html .= Head::render('Sam Driver', 'Articles and tutorials on game and web development');
 
-        $html .= '<body>';
+        $html .= '<body class="home">';
 
         $html .= '<header>';
         $html .= '<h1>Articles and Tutorials</h1>';

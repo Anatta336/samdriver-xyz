@@ -18,15 +18,18 @@ class Renderer
         // <head>
         $html .= Head::render($article->getName(), $article->getDescription());
 
-        $html .= '<body>';
+        $html .= '<body class="article">';
+
+        // <header>
+        $html .= '<header>';
 
         // <nav>
         $html .= Nav::render();
 
-        // <header>
-        $html .= '<header>';
+        $html .= '<div>';
         $html .= '<h1>'.htmlentities($article->getName()).'</h1>';
         $html .= '<p>'.htmlentities($article->getDescription()).'</p>';
+        $html .= '</div>';
         $html .= '</header>';
 
         // <article>

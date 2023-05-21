@@ -7,7 +7,7 @@ class Nav
     public static function render(): string
     {
         return <<<'EOD'
-        <nav class="article">
+        <nav>
             <a class="home" href="/">
                 <div class="square"></div>
                 <div class="square"></div>

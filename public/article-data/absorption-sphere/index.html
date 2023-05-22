@@ -13,7 +13,7 @@
 
 <body>
     <article>
-        <p>This is a continuation from a <a href="/article/sphere-refraction">previous article on raytracing through a
+        <p>This is a continuation from a <a href="/article/refraction-sphere">previous article on raytracing through a
                 sphere</a>. That shader dealt with the path of rays passing through a transparent sphere, but didn't
             account for the material of the sphere absorbing any of the light. Here we'll explore how to simulate that
             effect so that the sphere itself can take on a colour.</p>
@@ -106,7 +106,7 @@
         </a>
 
         <h1>Absorbant Volume</h1>
-        <p>By reusing the ray-vs-sphere subgraph from a <a href="/article/sphere-refraction">previous article</a> we can
+        <p>By reusing the ray-vs-sphere subgraph from a <a href="/article/refraction-sphere">previous article</a> we can
             create a simple effect of a sphere that absorbs light passing through it.</p>
 
         <a href="/article-data/absorption-sphere/absorbOnlyGraph.webp">
@@ -131,7 +131,7 @@
         </a>
 
         <h1>Absorbant Rays</h1>
-        <p>We can also integrate absorption into the <a href="/article/sphere-refraction">refraction and reflection shader</a>
+        <p>We can also integrate absorption into the <a href="/article/refraction-sphere">refraction and reflection shader</a>
             we made during that previous article.</p>
 
         <a href="/article-data/absorption-sphere/basicAbsorbGraph.webp">

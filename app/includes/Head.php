@@ -9,11 +9,14 @@ class Head
         $title = htmlentities($title);
         $description = htmlentities($description);
 
+        // Cachebusting for CSS.
+        $cssModified = filemtime(__DIR__.'/../../public/css/style.css');
+
         return <<<EOD
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link rel="stylesheet" href="/css/style.css">
+            <link rel="stylesheet" href="/css/style.{$cssModified}.css">
 
             <head profile="http://www.w3.org/2005/10/profile">
             <link rel="icon" type="image/png" href="/favicon/gradient-32x32.png">

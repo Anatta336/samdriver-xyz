@@ -37,6 +37,10 @@ RewriteRule "^/?articles/scriptableRender.htm" "/article/scriptable-render" [R=3
 RewriteRule "^/?articles/sphereRefraction.htm" "/article/refraction-sphere" [R=301,L]
 RewriteRule "^/?articles/trigPalette.htm" "/article/simple-procedural-palette" [R=301,L]
 
+# Enable cache busting, turning /style.123456.css into /style.css
+RewriteEngine On
+RewriteRule ^(.+)\.\d+(\.css)$ $1$2 [L]
+
 # If file doesn't exist, rewrite to /index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule "^(.*)$" "/index.php" [L]

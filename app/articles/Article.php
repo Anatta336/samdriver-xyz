@@ -2,6 +2,7 @@
 
 namespace App\Articles;
 
+use DateTimeImmutable;
 use DOMDocument;
 
 class Article
@@ -96,6 +97,14 @@ class Article
         }
 
         return $html;
+    }
+
+    /**
+     * Date the article was last modified.
+     */
+    public function getLastModified(): DateTimeImmutable
+    {
+        return DateTimeImmutable::createFromFormat('U', filemtime($this->path));
     }
 
     protected function loadSummary(): void

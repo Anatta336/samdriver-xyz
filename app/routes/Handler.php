@@ -6,6 +6,7 @@ use App\Articles\Article;
 use App\Articles\Renderer;
 use App\Home\Renderer as HomeRenderer;
 use App\NotFound\Renderer as NotFoundRenderer;
+use App\Sitemap\Renderer as SitemapRenderer;
 
 /**
  * Entrypoint class responsible for handling a URI and returning the appropriate response.
@@ -35,6 +36,8 @@ class Handler
                 case 'article':
                 case 'articles':
                     return $this->renderArticle();
+                case 'sitemap.xml':
+                    return SitemapRenderer::render();
                 case '/':
                 case '':
                     return HomeRenderer::render();

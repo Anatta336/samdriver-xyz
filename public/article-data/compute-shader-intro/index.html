@@ -20,10 +20,10 @@
   <img src="/article-data/compute-shader-intro/scene-488x468.webp" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit star shaped lens flares." width="488" height="468">
 </video>
 
-<h1>Compatibility</h1>
+<h2>Compatibility</h2>
 <p>I'm writing this using Unity 2019.3 and the URP. We'll not be using anything marked as experimental so it should continue to work in future versions. Note that the URP is designed to be compatible on a wide range of devices, but we'll be using compute shaders and some shader model 5 features which would limit our deployment targets. Take care to check compatibility especially if you want your code to work on mobile platforms.</p>
 
-<h1>The Plan</h1>
+<h2>The Plan</h2>
 <p>We're going to make an (intentionally) unrealistic type of lens flare effect. We'll let the scene get rendered as normal then find anywhere that's particularly bright and overlay a lense flare image there. Transferring data back and forth between the graphics card and general memory is pretty slow, so we want to do all that in "GPU land" which means using a compute shader and a couple of compute buffers.</p>
 
 <ol>
@@ -34,7 +34,7 @@
 
 <p>The URP has already been made by the good people at Unity so the first step is done for us. We'll add in our work as a <code>ScriptableRendererFeature</code> set up to be inserted after all the other rendering is done.</p>
 
-<h1>Compute Shaders</h1>
+<h2>Compute Shaders</h2>
 <p>As with the vertex and fragment (or pixel) shaders you may be familiar with, compute shaders are bits of code that run on the graphics card. Unlike the traditional shaders they're more general purpose, they can write to arbitrary buffers rather than being limited to vertices or fragments. In our case we'll make a compute buffer that gets filled with information about which pixels are bright. As with all shaders, graphics cards are really good at running large numbers of threads all executing the same compute shader.</p>
 
 <pre><code>// input texture
@@ -218,7 +218,7 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
 
 <p>Finally, if this thread's pixel is bright enough we add its position to the <code>_brightPoints</code> buffer. You'll remember from earlier that's an <code>AppendStructuredBuffer</code> which means our many threads can safely append to it without loss of data.</p>
 
-<h1>Draw Indirect</h1>
+<h2>Draw Indirect</h2>
 <p>We now have a compute shader that produces a buffer with the position of every bright pixel in the rendered scene. Next we need to draw a flare for each of those. We'll use a form of <a href="https://docs.unity3d.com/ScriptReference/Rendering.CommandBuffer.DrawProcedural.html"></a><code>DrawProcedural</code></a> to do that. <code>DrawProcedural</code> lets us render a mesh (or in our case just a couple of triangles) without needing to provide the vertices and indices that are normally used to define a mesh. Instead we say that we want to draw a certain number of triangles and promise that the vertex shader will somehow produce the vertices needed (it's often also used with a geometry shader but we'll stick with just a vertex shader here.) In classic mesh rendering a vertex shader manipulates existing vertices, instead we'll make one that reads the data in our <code>_brightPoints</code> buffer and generates vertices from it.</p>
 
 <p><code>DrawProcedural</code> needs to know how many vertices and instances it'll be drawing. We know each flare will be drawn as a two triangle quad, but how many of those instances? That'll depend on how many bright points were found by the compute shader. That buffer's data - and its counter - only exists in GPU-land, and copying it back so we can give it to <code>DrawProcedural</code> isn't good for performance. Here enters <code>DrawProceduralIndirect</code> which works the same but instead of needing to directly tell it the triangle and instance count we can tell it what buffer to look in to find them. We can get the instance count we need into a buffer using <code>ComputeBuffer.CopyCount</code> or the <code>CommandBuffer</code> version <code>CopyCounterValue</code>. These copy the length of an <code>AppendStructuredBuffer</code> into a given location within another buffer.</p>
@@ -245,7 +245,7 @@ cmd.CopyCounterValue(brightPoints, drawArgsBuffer, sizeof(uint));
 cmd.DrawProceduralIndirect(Matrix4x4.identity, flareMaterial, 0, MeshTopology.Triangles,
   drawArgsBuffer, 0, properties);</code></pre>
 
-<h1>The Flare Shader</h1>
+<h2>The Flare Shader</h2>
 <p>We're back to regular vertex and fragment shaders to draw each flare. The interesting part is in the vertex shader which now has to create a vertex based on our <code>_brightPoints</code> buffer.</p>
 
 <pre><code>StructuredBuffer&lt;int2&gt; _brightPoints;
@@ -270,7 +270,7 @@ v2f vert (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 
 <p>I'll skip listing the functions that produce position and UV values based on vertexID as there's not much to explain there. Feel free to check the full source linked below if you're interested.</p>
 
-<h1>An Overdraw Nightmare</h1>
+<h2>An Overdraw Nightmare</h2>
 <img src="/article-data/compute-shader-intro/scene-every-pixel.webp" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit very bright star shaped lens flares." width="507" height="473">
 
 <p>We now have something that does what we set out to do. But it seems to be causing some worrying performance problems for such a simple scene. Let's put it through <a href="https://renderdoc.org/">RenderDoc</a> to see what's going on.</p>
@@ -281,7 +281,7 @@ v2f vert (uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 
 <p>This is obviously already a big problem but it could be even worse. Because we don't directly control how many flare quads are rendered or author their position it's quite possible to have very highly variable performance impact depending on the scene. In a game performance could be fine most the time but drop during brightly lit sections because the screen is suddenly full of flare quads.</p>
 
-<h1>Generating fewer bright spots</h1>
+<h2>Generating fewer bright spots</h2>
 <p>Compared to the 32,000&micro;s to render the flares, our compute shader to find where they should be was a delightfully small 40&micro;s. So we can afford to make the compute shader more complex if it cuts down on how much we need to draw. Instead of finding every bright pixel, let's chop the image up into a grid and find a maximum of one bright pixel in each cell. The thread group system used to dispatch the compute shader is already effectively splitting the image into grid cells so we can use that.</p>
 
 <p>Our new compute shader needs to communicate with the other threads in its group so that together they can work out which thread has the brightest pixel and add that one to the <code>_brightPoints</code> buffer.</p>
@@ -375,7 +375,7 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
 
 <p>The rest of the process remains the same but now there's far fewer bright points generated. Sure enough drawing is much faster and our compute shader is significantly slower than before. The overall performance is greatly improved though, with total frame time around 8% of previously.</p>
 
-<h1>Optimisation Tweaking</h1>
+<h2>Optimisation Tweaking</h2>
 <img src="/article-data/compute-shader-intro/group-8-performance.webp" alt="Screenshot of timing analysis from the RenderDoc utility. Both DrawInstancedDirect and Dispatch have reduced time cost." width="568" height="218">
 
 <p>Earlier we talked about how thread group size can affect performance. In this case reducing the group size to 8x8 (and increasing the number of groups dispatched so it still covers the whole image) causes a significant increase in speed on my machine. Even though we end up drawing more flares the total frame time is about 50% of what it was with the 32 group size.</p>
@@ -412,7 +412,7 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
   <img src="/article-data/compute-shader-intro/scene-488x468.webp" alt="Rendering of a 3D scene with a cube and sphere lit by a visible sun. The sun and the brightest areas on the objects exhibit star shaped lens flares." width="488" height="468">
 </video>
 
-<h1>Further Considerations</h1>
+<h2>Further Considerations</h2>
 <p>We've barely mentioned what the rest of the rendering system is doing, which is by design. The aim is our lens flare effect should be able to sit on top of whatever rendering is going on, so long as it provides an image we can feed to the compute shader. But there are a couple of things about that image we need to handle.</p>
 
 <p>HDR helps a lot with finding the bright points that we want to higlight with flares. We don't need to make any special adaptations in code to handle its presence or absence, but would generally need to set a lower threshold for a pixel to count as being bright if we're not using HDR. Like the often overused bloom effects in older games without HDR support the flares will have a tendency to appear in areas which aren't bright enough to warrant the effect.</p>
@@ -421,7 +421,7 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
 
 <p>MSAA does need some special handling. When a scene is being rendered with MSAA active we can't read from the render target in the normal way as it'll be made up of multiple samples. When MSAA is detected we can resolve the texture to a temporary render texture, then feed that to the bright detection compute shader. In theory Unity should detect that and do it for us but I encountered odd behaviour where some texture seemed to get reused from the previous frame without clearing, creating artefacts. The flares we draw don't benefit from MSAA (there's no visible mesh edges) so ideally we'd draw them into the resolved buffer and use that for the final output. Unfortunately I don't think we can tell the URP to directly use something else as the buffer to present. So we end up resolving once more than is necessary, a loss of around 80&micro;s per frame.</p>
 
-<h1>Finished</h1>
+<h2>Finished</h2>
 <p>There's plenty more code in the finished project which isn't explored in detail here. I wanted to focus on the core use of a compute shader to generate a buffer that's then used to render out results. I also added a couple of features to the flares. The luminance and colour of the pixel is recorded along with its position, and used to adjust the flare graphic slightly. I also added a bouncy rotation effect to the flares because it looks fun.</p>
 
 <p class="download">The example project can be <a href="/article-data/compute-shader-intro/brightSpots.zip">downloaded directly as a .zip</a>, or on <a href="https://github.com/Anatta336/bright-spots">GitHub</a>. The code is fairly heavily commented although does assume some prior knowledge. As usual with Unity projects you'll need to do a little ritual after downloading. When you first open the project it'll take a few minutes to build the local library. You'll then need to Open Scene to open the actual sample scene in the project (Unity silently generates a default start scene and shows you that instead.) To be safe you should then restart Unity as some assets don't seem to deserialize completely at first.</p>

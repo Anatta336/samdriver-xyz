@@ -149,6 +149,8 @@ pre code {
     tab-size: 2;
     -moz-tab-size: 2;
 
+    clear: both;
+
     padding-left: 5px;
     padding-right: 5px;
     padding-top: 7px;

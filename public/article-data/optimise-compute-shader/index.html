@@ -15,10 +15,10 @@
     <article>
 <p>Following on from <a href="/article/compute-shader-intro">a previous article on creating simple lens flare effects using compute shaders</a> we can get some help from RenderDoc to find a faster version of that shader.</p>
 
-<h1>The Goal</h1>
+<h2>The Goal</h2>
 <p>We're given a large texture and want to find the brightest pixel within each 8x8 square over the image, but only if it's over a certain luminance threshold. Previously we created a compute shader that achieves that, but it felt like it had room to improve.</p>
 
-<h1>Starting Point</h1>
+<h2>Starting Point</h2>
 <p>Our previous shader uses a thread group size of 8&times;8, with each thread accessing the colour at its location and calculating its luminance. Then one of the threads goes through all those results to find the brightest. Here's the code for the important part:</p>
 
 <pre><code>#define GROUP_SIZE 8
@@ -68,7 +68,7 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
 
 <p>The weakness is that for a significant amount of execution time only one of the threads in each group is doing anything useful. GPUs are really good at running lots of threads at once, so we may be squandering the hardware's potential here.</p>
 
-<h1>The Measure of a Shader</h1>
+<h2>The Measure of a Shader</h2>
 <p>To accurately compare implementation we need to be able to measure their performance. It's very hard to do that accurately from the CPU side. You could try to use Unity's profiling tools or make your own version measuring the time before after after calling <code>Dispatch</code>. But this doesn't give accurate information on how long the shader itself is taking to complete. The shader might not have started running when you get to the <code>EndSample()</code> line. The CPU and GPU really are separate pieces of hardware and don't operate in lockstep.</p>
 
 <pre><code>// this wouldn't give accurate measurements for the shader
@@ -95,7 +95,7 @@ Profiling.Profiler.EndSample();
 
 <img src="/article-data/optimise-compute-shader/renderDocPipelineState.webp" alt="Screenshot of RenderDoc's Pipeline State interface while our compute shader's dispatch event is selected" width="715" height="547">
 
-<h1>Multiple Samples per Thread</h1>
+<h2>Multiple Samples per Thread</h2>
 <p>Now that we can measure performance let's try some alternative algorithms for finding bright pixels.</p>
 
 <p>We were concerned about wasting resources by having idle threads so let's make a version that keeps every thread busy. Each thread will examine a complete 8&times;8 area on its own. As before here's the core of the code:</p>
@@ -135,7 +135,7 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
 
 <p>I suspect the problem here is we're messing up texture cache coherence. When in doubt blame cache coherence. The ideal way to access a texture multiple times is to access texels close to one another. Usually nearby texels are pulled into the texture cache along with the one you actually read from. But in this case we have each thread accessing a texel at least 8 away from where any of the other threads are accessing. Keep in mind the other threads are accessing the texture at the same time. If the texture cache is big enough that wouldn't be a problem, but I suspect we're not in that situation.</p>
 
-<h1>Shared Search</h1>
+<h2>Shared Search</h2>
 <p>Now let's go back to something closer to the original design so each thread is dealing with just one texel. But now we'll try to share out the task of finding the brightest pixel. Instead of having just one thread do it alone we can at least have some others help.</p>
 
 <img class="right" src="/article-data/optimise-compute-shader/strideProcess.webp" width="461" height="239" alt="A diagram showing a set of pixels cascading
@@ -207,7 +207,7 @@ void FindBrights (uint3 globalId : SV_DispatchThreadID, uint3 localId : SV_Group
 
 <p>A slight gain! Although half the threads are wasted for the whole search process it still shares out the work and gets it done a little faster than the original. The improvement should be greater for large thread group sizes too.</p>
 
-<h1>Why Not Both?</h1>
+<h2>Why Not Both?</h2>
 <p>Trying to sample the whole 8&times;8 area in each thread didn't work out, but I feel hopeful we can do something useful with cache coherency. This version will have each thread sample a few (nearby) texels, find their brightest, store that, and then we do the group-wide search on that smaller set of bright pixels.</p>
 
 <pre><code>#define GROUP_SIZE 4

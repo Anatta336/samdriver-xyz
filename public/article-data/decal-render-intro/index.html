@@ -25,7 +25,7 @@
 
 <p class="aside">Naming things is hard, and some things get named several times. I'm calling these two decal techniques "view-space projection" and "generated mesh" but they're certainly referred to by other names. If there's better and/or more commonly accepted names feel free to let me know and I'll update the labels.</p>
 
-<h1>View-space projection</h1>
+<h2>View-space projection</h2>
 <p>Today this tends to be what people initially think of when talking about decals. View-space projection decals are rendered by performing the projection process during rendering. Each decal exists in the scene as a simple mesh&mdash;usually a cuboid. The decal is rendered using a fragment shader that looks at the world position of whatever else was rendered where that fragment is placed. Using that world position with the position and size of the decal itself it works out what part of the decal's texture (if any) should appear in the fragment.</p>
 
 <!-- loader script shared by all 3 demos
@@ -90,7 +90,7 @@
 
 <p>Going back to our example from <i>Alyx</i> we can use <a href="https://renderdoc.org/">RenderDoc</a> to see that the the bullet hole decals are rendered in this way. The image above shows the cube mesh that's used to draw one of the decals. To create the bullet hole all the game has to do is place an appropriately rotated cube where the bullet hit and render it with the decal shader. The bullet decals are small so the total view area that can need processing will be low. The decals are also removed from the scene after a time delay to prevent too many building up.</p>
 
-<h1>Generated mesh decals</h1>
+<h2>Generated mesh decals</h2>
 <p>Earlier we talked about the simplest possible decal being just a textured quad. A generated mesh decal is an extension of that, creating a mesh that matches the target surface that can be rendered without any need for special shaders. The downside is creating that custom mesh is far slower than just creating the cube needed to display a viewspace decal.</p>
 
 <img src="/article-data/decal-render-intro/alyxPainting-600-495.webp" alt="Image from Half-Life: Alyx analysed in RenderDoc, showing a wireframe mesh on the parts of the wall and bricks where the painted image is located." width="600" height="495">
@@ -118,12 +118,12 @@
 
 <p>The process for generating the decal's mesh involves examining nearby scenery triangles, transforming them into the decal object's space and clipping them to fit within its bounds. The exact process is outside the scope of this article, but you can see <a href="https://github.com/Anatta336/driven-decals/blob/master/Runtime/MeshProjection.cs">a basic implementation here</a>. The key simplification is that by transforming the triangles into the decal object's space you're clipping them against an axis aligned box which is a far easier set of geometry operations.</p>
 
-<h1>Unity Legacy: Redraw and overlay</h1>
+<h2>Unity Legacy: Redraw and overlay</h2>
 <p>This is the technique used by the "old" projector rendering system in Unity. Similar to the generated mesh decal this renders a mesh placed on the surface. Unlike that it doesn't generate a new mesh and instead redraws the entire mesh of the objects that it's near but using a different material. Often most of the redrawn mesh will be transparent and effectively wasted. Performance cost quickly builds up with these decals. If several are placed near large objects then a lot of vertices and fragments need to be processed, even if the majority of fragments get discarded.</p>
 
 <p>The advantage to this approach is that unlike view-space projection it doesn't need to read from the scene's depth buffer which isn't available on some platforms. Today that limitation is rare so more efficient methods should be used.</p>
 
-<h1>Unity HDRP: Prepass and apply</h1>
+<h2>Unity HDRP: Prepass and apply</h2>
 <p>I don't have a detailed understanding of how the HDRP handles its decals, but as best I can tell the process is broadly:</p>
 <ol>
     <li>Depth-only pass for the scene.</li>
@@ -138,7 +138,7 @@
 
 <p class="aside">During the hour working with the HDRP to write this section of the article I've had Unity crash more than the combined past 6 months of using using the URP.</p>
 
-<h1>Choose your decal technique</h1>
+<h2>Choose your decal technique</h2>
 <p><b>View-space projection</b>: when you need to create the decal at runtime or have it adapt to changing surfaces. Great for dynamic effects like bullet holes.</p>
 <p><b>Generated mesh</b>: to get better rendering performance at the cost of the decal being static. Great for environment decoration.</p>
 

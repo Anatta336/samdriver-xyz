@@ -22,7 +22,7 @@
             alt="Computer generated image of a glass sphere in a simple scene. The surrounding scene can be seen in the sphere through a combination of reflection and refraction."
             width="1189" height="699">
 
-        <h1>When the fastest thing in the universe slows down</h1>
+        <h2>When the fastest thing in the universe slows down</h2>
 
         <p>You might have heard the speed of light talked about as a constant, but more accurately it's the speed of
             light in a vacuum that's constant. Light travels slower through other materials and that change in speed can
@@ -51,7 +51,7 @@
             to model, fake, or ignore in your rendering systems is up to you.
         </p>
 
-        <h1>Air to glass</h1>
+        <h2>Air to glass</h2>
 
         <!-- script shared between all demos on this page -->
         <script defer="true" src="/article-data/refraction-sphere/refractionDemo.js"></script>
@@ -141,7 +141,7 @@
             </p>
         </aside>
 
-        <h1>Glass to air</h1>
+        <h2>Glass to air</h2>
         <noscript>
             <!-- if javascript is disabled hide the canvas that we can't use -->
             <style>
@@ -177,7 +177,7 @@
             be able to see it when peering into a glass of water from certain angles if the container is shaped
             correctly.</p>
 
-        <h1>Follow that light ray</h1>
+        <h2>Follow that light ray</h2>
 
         <p>The basic principle of ray tracing is that you create a ray (or several) for each display pixel and follow it
             through the scene to work out what colour that pixel should be. Generally this is slower than the
@@ -400,17 +400,23 @@
             entirely, two identical solutions if the ray perfectly skims the sphere, and two different solutions when it
             passes through the sphere hitting the surface on the way in and the way out.</p>
 
-        <h1>Sphere in a shader</h1>
+        <h2>Sphere in a shader</h2>
         <p>With the maths sorted out for ray-vs-sphere we can make a shader using it. The principles here apply to any
             system but we'll demonstrate it in Unity's universal render pipeline (URP) and the shader graph system.</p>
 
-        <img src="/article-data/refraction-sphere/raySphereSubgraph.webp" width="1041" height="524">
+        <img src="/article-data/refraction-sphere/raySphereSubgraph.webp"
+            alt="screenshot of Unity's shader graph, showing a subgraph for ray-sphere intersection"
+            width="1041" height="524"
+        >
 
         <p>This subgraph is the heart of the shader. You can see how the a, b, and c values are prepared to be fed into
             the quadratic solver to find the "time" when the ray will hit the sphere's surface. The solutions are then
             used to get a position for each intersect.</p>
 
-        <img src="/article-data/refraction-sphere/quadraticSubgraph.webp" width="411" height="141">
+        <img src="/article-data/refraction-sphere/quadraticSubgraph.webp"
+            alt="screenshot of Unit's shader graph, showing a subgraph for solving a quadratic equation"
+            width="411" height="141"
+        >
         <p>The <i>solve quadratic</i> subgraph is just a wrapper for a custom node. The function could be expressed in
             shader graph nodes, but I find it adds needless complexity for what's fairly simple when expressed in code:
         </p>
@@ -420,12 +426,18 @@ x1 = (-b + s) / (2 * a);
 x2 = (-b - s) / (2 * a);
 </code></pre>
 
-        <img src="/article-data/refraction-sphere/rayPositionSubgraph.webp" width="492" height="172">
+        <img src="/article-data/refraction-sphere/rayPositionSubgraph.webp"
+            alt="screenshot of Unity's shader graph, showing a subgraph for calculating the position of a ray at a given time"
+            width="492" height="172"
+        >
         <p><i>Ray position at time</i> is calculated simply enough and just as you'd expect. Having even simple
             operations like this put into a subgraph will save a bit of time and more importantly makes it clearer
             what's going on within a complex graph.</p>
 
-        <img src="/article-data/refraction-sphere/raytraceSphereGraph.webp" width="492" height="172">
+        <img src="/article-data/refraction-sphere/raytraceSphereGraph.webp"
+            alt="screenshot of Unity's shader graph, showing a graph for raytracing a sphere"
+            width="492" height="172"
+        >
         <p>Finally, here's the actual shader graph. Notice that both the camera position and the view direction are in
             object space, meaning they'll be given in terms relative to where the object in the scene is. That means a
             position of (0, 0, 0) will be in the center of our sphere. We flip the view direction vector because the
@@ -433,7 +445,10 @@ x2 = (-b - s) / (2 * a);
             camera. Speaking of which, we have the ray's initial position set to be the camera but it works just as well
             to use the fragment's position on the surface of the mesh.</p>
 
-        <img src="/article-data/refraction-sphere/positionOnSphere.webp" width="463" height="448">
+        <img src="/article-data/refraction-sphere/positionOnSphere.webp"
+            alt="3D view in unity showing a sphere"
+            width="463" height="448"
+        >
         <p>The output is hooked up to represent the position of the ray intersection closest to the camera. You can see
             how the surface is more blue in the +z direction and more green in the +y direction. This is a screenshot
             from within Unity's editor, with a glowing orange outline around the cube mesh that's actually being
@@ -443,7 +458,7 @@ x2 = (-b - s) / (2 * a);
             a very similar output. The point of all this is that we'll be able to use the same technique to know how any
             arbitrary ray would hit the sphere, not just one coming straight from the camera.</p>
 
-        <h1>Through the looking-sphere</h1>
+        <h2>Through the looking-sphere</h2>
         <noscript>
             <!-- if javascript is disabled hide the canvas that we can't use -->
             <style>
@@ -453,7 +468,8 @@ x2 = (-b - s) / (2 * a);
 
             </style>
             <img src="/article-data/refraction-sphere/fallbackCircleRefract.webp" width="512" height="300"
-                alt="Diagram of a light ray being refracted by a circle of glass. The ray enters near the top of the circle where it is bent downwards. When the ray exits it is again bent downwards, producing a significant change in direction from the original ray.">
+                alt="Diagram of a light ray being refracted by a circle of glass. The ray enters near the top of the circle where it is bent downwards. When the ray exits it is again bent downwards, producing a significant change in direction from the original ray."
+            >
             <p class="warning">Javascript is disabled or unavailable in your browser so the interactive demo can't be
                 shown.</p>
         </noscript>
@@ -461,7 +477,8 @@ x2 = (-b - s) / (2 * a);
             <!-- fallback content, in this case shown if js enabled but not canvas -->
             <img src="/article-data/refraction-sphere/fallbackCircleRefract.webp"
                 alt="Diagram of a light ray being refracted by a circle of glass. The ray enters near the top of the circle where it is bent downwards. When the ray exits it is again bent downwards, producing a significant change in direction from the original ray."
-                width="512" height="300">
+                width="512" height="300"
+            >
             <p class="warning">Canvas rendering is disabled or unavailable in your browser so the interactive demo can't
                 be shown.</p>
         </canvas>
@@ -480,13 +497,19 @@ x2 = (-b - s) / (2 * a);
             can combined with with the surface normal and the material's index of refraction to find where the refracted
             ray will go. You'll recall from earlier that finding the normal of a sphere is wonderfully simple.</p>
 
-        <img src="/article-data/refraction-sphere/normalOfSphere.webp" width="428" height="92">
+        <img src="/article-data/refraction-sphere/normalOfSphere.webp"
+            alt="Unity's shader graph showing a simple subgraph for normalizing position to give normal"
+            width="428" height="92"
+        >
 
         <p>So long as we're working in object space with the sphere at the origin of that space it's just a case of
             normalizing the position vector. If the sphere were offset from the origin it just takes a subtraction to
             properly offset the position vector.</p>
 
-        <img src="/article-data/refraction-sphere/refractSubgraph.webp" width="798" height="220">
+        <img src="/article-data/refraction-sphere/refractSubgraph.webp"
+            alt="Unity's shader graph showing a custom function for finding the direction of a ray after refraction"
+            width="798" height="220"
+        >
 
         <p>Usefully HLSL has a built-in <code>refract</code> function so we can just wrap that up in a custom node. To
             handle the total internal reflection case, the built-in function returns <code>(0, 0, 0)</code>. Our
@@ -494,15 +517,22 @@ x2 = (-b - s) / (2 * a);
         <pre><code>Refracted = refract(Direction, SurfaceNormal, RefractiveIndex);
 TotalInternalReflection = (Refracted == float3(0.0, 0.0, 0.0));</code></pre>
 
-        <img src="/article-data/refraction-sphere/cubemapSubgraph.webp" width="421" height="148">
+        <img src="/article-data/refraction-sphere/cubemapSubgraph.webp"
+            alt="Unity's shader graph showing a custom function to sample a cubemap at a given direction"
+            width="421" height="148"
+        >
 
         <p>Unity's shader graph provides a <i>Sample Cubemap</i> node but it's set up to reflect the direction vector
             you give it. Although we could work around that, it's simple enough to wrap a custom function and make our
             own cubemap sampler:</p>
         <code>Out = SAMPLE_TEXTURECUBE_LOD(Cube, Sampler, Direction, LoD);</code>
 
-        <a href="refractSphereGraph.webp"><img
-                src="/article-data/refraction-sphere/refractSphereGraph.webp" width="2481" height="807"></a>
+        <a href="refractSphereGraph.webp">
+            <img src="/article-data/refraction-sphere/refractSphereGraph.webp"
+                alt="A larger Unity shader graph that renders a single pass refraction through a sphere"
+                width="2481" height="807"
+            >
+        </a>
         <p>With these new parts we can finally make our sphere refract some rays.</p>
 
         <p>Following the flow through this graph from the left, we start by finding where the ray hits the sphere. That
@@ -518,7 +548,7 @@ TotalInternalReflection = (Refracted == float3(0.0, 0.0, 0.0));</code></pre>
             alt="A glass sphere sits on a gridded plane near a red and a blue cube. The plane and cubes can be seen through the glass sphere, flipped and distorted."
             width="646" height="347">
 
-        <h1>The Scene Cubemap</h1>
+        <h2>The Scene Cubemap</h2>
         <p>Something you might notice is that the position our ray leaves the sphere isn't taken into account when we
             decide what to display. This is not true to life, but is hard to avoid when using a single cubemap to
             represent the surrounding scene. The cubemap gives us a view of the scene from just one position and all we
@@ -541,7 +571,7 @@ TotalInternalReflection = (Refracted == float3(0.0, 0.0, 0.0));</code></pre>
             it can be costly with regards performance, increasing with the probe's resolution and number in the scene.
         </p>
 
-        <h1>Adding Reflection</h1>
+        <h2>Adding Reflection</h2>
         <p>Speaking of reflections, we've neglected to deal with the ray being partially reflected when entering the
             sphere. A ray passing through an interface between mediums with different refractive indices should always
             be split into two parts. The refracted ray will pass through the interface into the new medium with a
@@ -554,7 +584,10 @@ TotalInternalReflection = (Refracted == float3(0.0, 0.0, 0.0));</code></pre>
             sphere's surface normal. But we do need to do some Fresnel-related calculation to know how strong the
             reflection should be.</p>
 
-        <img src="/article-data/refraction-sphere/fresnelSubgraph.webp" width="672" height="165">
+        <img src="/article-data/refraction-sphere/fresnelSubgraph.webp"
+            alt="Unity's shader graph showing a custom function for calculating the Fresnel reflectance"
+            width="672" height="165"
+        >
 
         <p>The full Fresnel equations for what happens to light as it passes from one medium to another are complex and
             deal with things like the polarisation of light (which we're just ignoring.) Instead we can use the
@@ -601,8 +634,12 @@ reflectance = r0 + (1.0 - r0) * x*x*x*x*x;</code></pre>
             get the right look far easier. Even if your goal is to make images that look real, that's not always the
             same thing as them being totally physically accurate.</p>
 
-        <a href="surfaceFresnelGraph.webp"><img
-                src="/article-data/refraction-sphere/surfaceFresnelGraph.webp" width="1326" height="524"></a>
+        <a href="surfaceFresnelGraph.webp">
+            <img src="/article-data/refraction-sphere/surfaceFresnelGraph.webp"
+                alt="section of Unity's shader graph showing the Fresnel reflectance being used to blend between the refracted and reflected rays"
+                width="1326" height="524"
+            >
+        </a>
 
         <p>This reflection handling is added into our existing shader graph. A <i>Lerp</i> node blends between the view
             from the reflected ray and the view from the refracted ray depending on the calcualted reflectance value.
@@ -614,7 +651,7 @@ reflectance = r0 + (1.0 - r0) * x*x*x*x*x;</code></pre>
 
         <p>The addition of a surface reflection goes a long way to help the sphere feel like it's part of the scene.</p>
 
-        <h1>Internal reflection</h1>
+        <h2>Internal reflection</h2>
 
         <p>When a ray leaves our sphere it should be split in two, with one of those being reflected back into the
             sphere. That ray will hit the sphere again somewhere else, where it again should be split in two with one
@@ -625,8 +662,12 @@ reflectance = r0 + (1.0 - r0) * x*x*x*x*x;</code></pre>
         <p>To model the many internal bounces in our shader let's put the process for tracing the ray into a subgraph
             that we can repeatedly use.</p>
 
-        <a href="internalBounceSubgraph.webp"><img
-                src="/article-data/refraction-sphere/internalBounceSubgraph.webp" width="1506" height="475"></a>
+        <a href="internalBounceSubgraph.webp">
+            <img src="/article-data/refraction-sphere/internalBounceSubgraph.webp"
+                alt="section of Unity's shader graph mixing the reflected and refracted rays through a sphere"
+                width="1506" height="475"
+            >
+        </a>
 
         <p>Given a ray, the sphere's radius (with the assumption the sphere's origin is at <code>(0,0,0)</code>), and
             the refractive indices of the mediums, this finds where the ray will exit the sphere and the direction of
@@ -634,8 +675,12 @@ reflectance = r0 + (1.0 - r0) * x*x*x*x*x;</code></pre>
             colours from the rays. We can repeatedly use this subgraph to trace multiple bounces around the inside of
             our sphere.</p>
 
-        <a href="multipleBouncesGraph.webp"><img
-                src="/article-data/refraction-sphere/multipleBouncesGraph.webp" width="1117" height="600"></a>
+        <a href="multipleBouncesGraph.webp">
+            <img src="/article-data/refraction-sphere/multipleBouncesGraph.webp"
+                alt="section of Unity's shader graph showing repeated use of the internal bounce subgraph"
+                width="1117" height="600"
+            >
+        </a>
 
         <p>The first use of the subgraph is following a ray after it enters the sphere, with the position it tries to
             leave the sphere and the reflected direction used to trace another ray. Each iteration leads to another
@@ -650,7 +695,7 @@ reflectance = r0 + (1.0 - r0) * x*x*x*x*x;</code></pre>
         <p>You can see that each additional bounce changes the final image less than the previous one, despite causing
             the same increase in shader complexity. There's obviously a balance to be struck here.</p>
 
-        <h1>Summary</h1>
+        <h2>Summary</h2>
         <p>We've gone through a basic introduction to both the principles of ray tracing and refraction. By
             understanding the mathematics of how a ray is affected by passing through the interface between two mediums
             we've been able to create a shader that traces rays through a sphere and out into the surrounding scene.

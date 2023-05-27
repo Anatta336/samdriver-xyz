@@ -4,9 +4,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "sync",
+            "label": "sync-live",
             "type": "shell",
-            "command": "rsync -e \"ssh\" -av --info=progress2 --exclude \".git\" ~/code/samdriver.xyz/ sdriver@new.samdriver.xyz:/home/sdriver/samdriver.xyz"
+            "command": "rsync -e \"ssh\" -av --info=progress2 --delete --exclude=\".git\" --exclude=\"vendor\" ~/code/samdriver.xyz/ sdriver@new.samdriver.xyz:/home/sdriver/samdriver.xyz"
         },
         {
             "label": "autoload",

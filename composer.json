@@ -1,0 +1,20 @@
+{
+    "name": "sam-driver/blog",
+    "description": "Simple personal site",
+    "type": "project",
+    "require-dev": {
+        "phpunit/phpunit": "^10.1"
+    },
+    "license": "MIT",
+    "autoload": {
+        "classmap": [
+            "app",
+            "tests"
+        ]
+    },
+    "authors": [
+        {
+            "name": "Sam Driver"
+        }
+    ]
+}

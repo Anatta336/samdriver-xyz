@@ -7,6 +7,33 @@
             "label": "sync",
             "type": "shell",
             "command": "rsync -e \"ssh\" -av --info=progress2 --exclude \".git\" ~/code/samdriver.xyz/ sdriver@new.samdriver.xyz:/home/sdriver/samdriver.xyz"
+        },
+        {
+            "label": "autoload",
+            "type": "shell",
+            "command": "docker-compose run --rm composer dump-autoload",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "phpunit",
+            "type": "shell",
+            "command": "docker-compose run --rm phpunit tests/",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "phpunit-coverage",
+            "type": "shell",
+            "command": "docker-compose run --rm phpunit --coverage-html tests/coverage tests/",
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
         }
     ]
 }

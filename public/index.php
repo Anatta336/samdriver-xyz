@@ -5,7 +5,7 @@ namespace Public;
 
 use App\Routes\Handler;
 
-require_once '../app/autoloader.php';
+require '../vendor/autoload.php';
 // error_reporting(E_ALL);
 
 $uri = $_SERVER['REQUEST_URI'] ?? '/';

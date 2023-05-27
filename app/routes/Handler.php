@@ -38,6 +38,7 @@ class Handler
                 case 'articles':
                     return $this->renderArticle();
                 case 'sitemap.xml':
+                    header('Content-Type: application/xml');
                     return SitemapRenderer::render();
                 case '/':
                 case '':

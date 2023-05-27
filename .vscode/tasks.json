@@ -4,11 +4,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "echo",
-            "type": "shell",
-            "command": "echo Hello"
-        },
-        {
             "label": "sync",
             "type": "shell",
             "command": "rsync -e \"ssh\" -av --info=progress2 --exclude \".git\" ~/code/samdriver.xyz/ sdriver@new.samdriver.xyz:/home/sdriver/samdriver.xyz"

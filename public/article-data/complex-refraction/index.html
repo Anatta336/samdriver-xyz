@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Complex Refractions in WebGL</title>
+    <meta name="description" content="A technique for fairly-good refraction in complex meshes.">
+    <meta name="sort" content="2023-05-27">
+</head>
+
+<body>
+    <article>
+        <script src="/article-data/complex-refraction/three.js"></script>
+        <script defer="true" src="/article-data/complex-refraction/demo.js"></script>
+
+        <p>Article content goes here.</p>
+
+        <noscript>
+            <!-- if javascript is disabled hide the canvas that we can't use -->
+            <style>
+                #sphere-canvas {
+                    display: none;
+                }
+
+            </style>
+            <!-- <img src="/article-data/refraction-sphere/fallbackAirToGlass.webp" width="512" height="512"
+                alt="Diagram of a light ray entering a flat glass surface. The ray is bent towards the surface's normal when passing into the glass medium. A smaller ray is seen reflected off the surface."> -->
+            <p class="warning">Javascript is disabled or unavailable in your browser so the interactive demo can't be
+                shown.</p>
+        </noscript>
+
+        <div id="simple-sphere-holder"></div>
+
+        <p>More content.</p>
+
+    </article>
+</body>

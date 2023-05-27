@@ -3,6 +3,7 @@
 namespace App\Routes;
 
 use App\Articles\Article;
+use App\Articles\ArticleList;
 use App\Articles\Renderer;
 use App\Home\Renderer as HomeRenderer;
 use App\NotFound\Renderer as NotFoundRenderer;
@@ -73,7 +74,7 @@ class Handler
     protected function renderArticle(): string
     {
         $slug = $this->getSlug();
-        $article = Article::fromSlug($slug);
+        $article = Article::fromSlug($slug, ArticleList::DATA_PATH);
 
         if (!$article) {
             throw new NotFoundException("Article not found: {$slug}");

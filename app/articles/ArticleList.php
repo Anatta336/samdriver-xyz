@@ -4,29 +4,21 @@ namespace App\Articles;
 
 class ArticleList
 {
+    const DATA_PATH = 'article-data/';
+
     protected array $slugs;
     protected array $articles;
 
-    /**
-     * @return array<string> Array of slugs, e.g. 'refraction-sphere'.
-     */
-    public function getSlugs(): array
+    protected string $dataPath;
+
+    public function __construct()
     {
-        if (isset($this->slugs)) {
-            return $this->slugs;
-        }
+        $this->dataPath = self::DATA_PATH;
+    }
 
-        $directories = new \DirectoryIterator(Article::DATA_PATH);
-
-        $this->slugs = [];
-
-        foreach ($directories as $directory) {
-            if ($directory->isDir() && !$directory->isDot()) {
-                $this->slugs[] = $directory->getFilename();
-            }
-        }
-
-        return $this->slugs;
+    public function setDataPath(string $dataPath): void
+    {
+        $this->dataPath = $dataPath;
     }
 
     /**
@@ -46,7 +38,7 @@ class ArticleList
         $this->articles = [];
 
         foreach ($this->slugs as $slug) {
-            $this->articles[] = Article::fromSlug($slug);
+            $this->articles[] = Article::fromSlug($slug, $this->dataPath);
         }
 
         $this->articles = array_filter($this->articles, function (Article|null $article) {
@@ -65,5 +57,27 @@ class ArticleList
     public function getArticleCount(): int
     {
         return count($this->getArticles());
+    }
+
+    /**
+     * @return array<string> Array of slugs, e.g. 'refraction-sphere'.
+     */
+    protected function getSlugs(): array
+    {
+        if (isset($this->slugs)) {
+            return $this->slugs;
+        }
+
+        $directories = new \DirectoryIterator($this->dataPath);
+
+        $this->slugs = [];
+
+        foreach ($directories as $directory) {
+            if ($directory->isDir() && !$directory->isDot()) {
+                $this->slugs[] = $directory->getFilename();
+            }
+        }
+
+        return $this->slugs;
     }
 }

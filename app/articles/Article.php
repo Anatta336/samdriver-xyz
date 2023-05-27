@@ -7,17 +7,15 @@ use DOMDocument;
 
 class Article
 {
-    const DATA_PATH = 'article-data/';
-
     protected string $slug;
     protected string $name;
     protected string $description;
     protected string $sort;
     protected string $path = '';
 
-    public static function fromSlug(string $slug): Article|null
+    public static function fromSlug(string $slug, string $dataPath): Article|null
     {
-        $article = new Article($slug);
+        $article = new Article($dataPath, $slug);
 
         if (!$article->exists()) {
             return null;
@@ -26,11 +24,16 @@ class Article
         return $article;
     }
 
-    protected function __construct(string $slug)
+    public function __construct(string $dataPath, string $slug)
     {
         $this->slug = $slug;
 
-        $this->path = self::DATA_PATH."{$this->slug}/index.html";
+        $this->path = $dataPath."/{$this->slug}/index.html";
+    }
+
+    public function getPath(): string
+    {
+        return $this->path;
     }
 
     public function exists(): bool
@@ -156,4 +159,3 @@ class Article
         return $document;
     }
 }
-

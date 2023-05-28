@@ -36,6 +36,11 @@ docker-compose run --rm phpunit tests/
 
 Currently the project uses a different autoloader for testing than it does for live. The testing autoloader is provided by Composer, while the "real" autoloader is found at `./app/autoloader.php`.
 
+## Article Specific Building
+Some articles use build tools to prepare JavaScript, for example `complex-refraction`. If there are build steps required, there will also be a `readme.md` file explaining them.
+
 ## TODO
 - [ ] Auto-generate outline on side of articles.
 - [ ] Update Docker version to use Apache, to match server.
+- [ ] Refraction
+    - [ ] npm project within the single article, using legacy three.js stuff is a nightmare.

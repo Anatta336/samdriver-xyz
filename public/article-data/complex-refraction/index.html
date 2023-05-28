@@ -12,29 +12,30 @@
 </head>
 
 <body>
-    <article>
-        <script src="/article-data/complex-refraction/three.js"></script>
-        <script defer="true" src="/article-data/complex-refraction/demo.js"></script>
+<article>
+<style>
+    #simple-sphere-holder {
+        height: 512px;
+        width: auto;
+        aspect-ratio: 1;
+        max-width: 100%;
+    }
+</style>
 
-        <p>Article content goes here.</p>
+    <script defer src="/article-data/complex-refraction/built.js"></script>
 
-        <noscript>
-            <!-- if javascript is disabled hide the canvas that we can't use -->
-            <style>
-                #sphere-canvas {
-                    display: none;
-                }
+    <p>Introduction.</p>
 
-            </style>
-            <!-- <img src="/article-data/refraction-sphere/fallbackAirToGlass.webp" width="512" height="512"
-                alt="Diagram of a light ray entering a flat glass surface. The ray is bent towards the surface's normal when passing into the glass medium. A smaller ray is seen reflected off the surface."> -->
-            <p class="warning">Javascript is disabled or unavailable in your browser so the interactive demo can't be
-                shown.</p>
-        </noscript>
+    <noscript>
+        <!-- <img src="/article-data/refraction-sphere/fallbackAirToGlass.webp" width="512" height="512"
+            alt="Diagram of a light ray entering a flat glass surface. The ray is bent towards the surface's normal when passing into the glass medium. A smaller ray is seen reflected off the surface."> -->
+        <p class="warning">Javascript is disabled or unavailable in your browser so the interactive demo can't be
+            shown.</p>
+    </noscript>
 
-        <div id="simple-sphere-holder"></div>
+    <div id="simple-sphere-holder"></div>
 
-        <p>More content.</p>
+    <p>More content.</p>
 
-    </article>
+</article>
 </body>

@@ -312,9 +312,10 @@ header p {
 
 article {
     display: block;
+    width: 100%;
+    max-width: 800px;
     margin: 0 auto;
     padding: 20px 40px;
-    max-width: 800px;
     background-color: #ebebeb70;
     border-radius: 2px;
     box-sizing: border-box;

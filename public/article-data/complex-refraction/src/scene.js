@@ -67,7 +67,8 @@ export default (holderName) => {
     const material = new ShaderMaterial({
         uniforms: {
             envMap: { value: null },
-            refractiveRatio: { value: 0.8 },
+            refractiveIndexOutside: { value: 1.0 },
+            refractiveIndexInside: { value: 1.5 },
         },
         vertexShader: RefractShader.vertexShader,
         fragmentShader: RefractShader.fragmentShader,

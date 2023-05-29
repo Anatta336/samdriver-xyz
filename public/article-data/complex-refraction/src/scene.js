@@ -2,19 +2,20 @@ import {
     Scene,
     PerspectiveCamera,
     WebGLRenderer,
-    TorusKnotGeometry,
     Mesh,
     EquirectangularReflectionMapping,
-    MeshStandardMaterial,
     LinearSRGBColorSpace,
-    ReinhardToneMapping,
     Vector2,
+    ACESFilmicToneMapping,
+    ShaderMaterial,
+    BoxGeometry,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { RefractShader } from './refractShader.js';
 
 export default (holderName) => {
     const holderElement = document.getElementById(holderName);
@@ -41,20 +42,18 @@ export default (holderName) => {
     renderer.setSize(holderElement.clientWidth, holderElement.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
 
-    scene.background = null;
-
-    // Leave in linear space, to use as input for the bloom pass.
+    // Linear space for good bloom and tonemapping results.
     renderer.outputColorSpace = LinearSRGBColorSpace;
-    renderer.toneMapping = ReinhardToneMapping;
-    renderer.toneMappingExposure = 1.5;
+    renderer.toneMapping = ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.3;
 
     const renderPass = new RenderPass(scene, camera);
 
     const bloomPass = new UnrealBloomPass(
         new Vector2(holderElement.clientWidth, holderElement.clientHeight),
-        8.00, // strength
-        0.40, // radius
-        0.95  // threshold
+        9.00, // strength
+        0.80, // radius
+        0.90, // threshold
     );
 
     const composer = new EffectComposer(renderer);
@@ -64,12 +63,16 @@ export default (holderName) => {
     // add to DOM.
     holderElement.appendChild(renderer.domElement);
 
-    const geometry = new TorusKnotGeometry();
-    const material = new MeshStandardMaterial({
-        color: 0xa0ff50,
-        metalness: 0.95,
-        roughness: 0.2,
+    const geometry = new BoxGeometry(0.07, 0.09, 0.03);
+    const material = new ShaderMaterial({
+        uniforms: {
+            envMap: { value: null },
+            refractiveRatio: { value: 0.8 },
+        },
+        vertexShader: RefractShader.vertexShader,
+        fragmentShader: RefractShader.fragmentShader,
     });
+
     const mesh = new Mesh(geometry, material);
     scene.add(mesh);
 
@@ -81,6 +84,9 @@ export default (holderName) => {
     function perFrame() {
         resizeToFit();
         cameraControl.update();
+
+        mesh.rotation.y += 0.003;
+
         composer.render();
     }
 
@@ -104,15 +110,15 @@ export default (holderName) => {
     }
 
     function createCamera() {
-        camera = new PerspectiveCamera(75, getHolderAspectRatio(), 0.05, 10);
+        camera = new PerspectiveCamera(75, getHolderAspectRatio(), 0.001, 5.00);
 
         cameraControl = new OrbitControls(camera, holderElement);
         cameraControl.dampingFactor = 0.05;
-        cameraControl.maxDistance = 8;
-        cameraControl.minDistance = 0.2;
+        cameraControl.maxDistance = 3;
+        cameraControl.minDistance = 0.07;
 
         cameraControl.target.set(0, 0, 0);
-        camera.position.set(0, 0, 4);
+        camera.position.set(0, 0, 0.5);
         cameraControl.update();
     }
 
@@ -127,6 +133,11 @@ export default (holderName) => {
             hdri = texture;
 
             scene.environment = hdri;
+            mesh.material.uniforms.envMap.value = hdri.clone();
+
+            scene.background = hdri;
+            scene.backgroundIntensity = 0.5;
+            scene.backgroundBlurriness = 0;
         })
         .catch((error) => {
             console.error('Error loading HDR.', error);

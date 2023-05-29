@@ -42,5 +42,6 @@ Some articles use build tools to prepare JavaScript, for example `complex-refrac
 ## TODO
 - [ ] Auto-generate outline on side of articles.
 - [ ] Update Docker version to use Apache, to match server.
-- [ ] Refraction
-    - [ ] npm project within the single article, using legacy three.js stuff is a nightmare.
+- [ ] Refraction.
+- [ ] Try film grain pass.
+- [ ] Apply bloom pass to scenes in webGL lunch and learn.

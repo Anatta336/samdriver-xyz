@@ -6,7 +6,9 @@ import { Vector3 } from 'three';
 const RefractShader = {
 
     uniforms: {
-        'envMap' : { value: null },
+        'environmentSampler' : { value: null },
+        'interiorSampler' : { value: null },
+        'exteriorSampler' : { value: null },
         'refactiveIndexOutside': { value: 1.0 },
         'refactiveIndexInside': { value: 1.5 },
         'aabbExtent': { value: new Vector3(0.07, 0.09, 0.03) },
@@ -44,7 +46,10 @@ const RefractShader = {
 
     fragmentShader: /* glsl */`
 
-        uniform samplerCube envMap;
+        uniform samplerCube environmentSampler;
+        uniform samplerCube interiorSampler;
+        uniform samplerCube exteriorSampler;
+
         uniform float refractiveIndexOutside;
         uniform float refractiveIndexInside;
         uniform vec3 aabbExtent;
@@ -148,15 +153,24 @@ const RefractShader = {
             exitPosition = incomingPosition + incomingDirection * tExit;
         }
 
-        vec3 sampleEnvFromObjectDirection(in vec3 objectDirection, in mat4 modelMatrix, in samplerCube envMap) {
+        vec3 sampleEnvFromObjectDirection(in vec3 objectDirection, in mat4 modelMatrix, in samplerCube environmentSampler) {
             vec3 worldDirection = (modelMatrix * vec4(objectDirection.xyz, 0.0)).xyz;
-            return textureCube(envMap, worldDirection).rgb;
+            return textureCube(environmentSampler, worldDirection).rgb;
+        }
+
+        vec3 sampleNormal(in vec3 objectPosition, in samplerCube normalSampler) {
+            vec3 raw = vec3(1.0) - textureCube(normalSampler, normalize(objectPosition)).rgb;
+            vec3 normal = normalize(vec3(
+                (raw.x - 0.5) * 2.0,
+                (raw.y - 0.5) * 2.0,
+                (raw.z - 0.5) * 2.0
+            ));
+
+            return normal;
         }
 
         void main() {
-            // TODO: sample normal map on surface.
-
-            vec3 surfaceObjectNormal = vObjectNormal;
+            vec3 surfaceObjectNormal = sampleNormal(vObjectPosition.xyz, exteriorSampler).xyz;
             vec3 surfaceObjectPosition = vObjectPosition.xyz;
 
             // Values to be filled by castThroughInterface.
@@ -169,7 +183,7 @@ const RefractShader = {
             );
 
             // Some light is immediately reflected out to environment from surface.
-            vec3 surfaceReflection = sampleEnvFromObjectDirection(surfaceReflectObjectDirection, vModelMatrix, envMap);
+            vec3 surfaceReflection = sampleEnvFromObjectDirection(surfaceReflectObjectDirection, vModelMatrix, environmentSampler);
 
             // Find where the refracted ray exits the AABB.
             vec3 exitObjectPosition = vec3(0.0, 0.0, 0.0);
@@ -178,27 +192,8 @@ const RefractShader = {
                 surfaceRefractObjectDirection, surfaceObjectPosition, aabbExtent,
                 exitObjectPosition, tExit
             );
-
-            // Set normal of exit depending on where the exit happens.
-            vec3 exitObjectNormal = vec3(0.0, 0.0, 0.0);
-            if (exitObjectPosition.x >= aabbExtent.x * 0.5 - 0.0001) {
-                exitObjectNormal = vec3(1.0, 0.0, 0.0);
-            }
-            if (exitObjectPosition.x <= aabbExtent.x * -0.5 + 0.0001) {
-                exitObjectNormal = vec3(-1.0, 0.0, 0.0);
-            }
-            if (exitObjectPosition.y >= aabbExtent.y * 0.5 - 0.0001) {
-                exitObjectNormal = vec3(0.0, 1.0, 0.0);
-            }
-            if (exitObjectPosition.y <= aabbExtent.y * -0.5 + 0.0001) {
-                exitObjectNormal = vec3(0.0, -1.0, 0.0);
-            }
-            if (exitObjectPosition.z >= aabbExtent.z * 0.5 - 0.0001) {
-                exitObjectNormal = vec3(0.0, 0.0, 1.0);
-            }
-            if (exitObjectPosition.z <= aabbExtent.z * -0.5 + 0.0001) {
-                exitObjectNormal = vec3(0.0, 0.0, -1.0);
-            }
+            
+            vec3 exitObjectNormal = sampleNormal(exitObjectPosition, exteriorSampler).xyz;
 
             // Find how the refracted ray gets split when hitting the exit of AABB.
             vec3 exitRefractObjectDirection = vec3(0.0, 0.0, 0.0);
@@ -210,13 +205,11 @@ const RefractShader = {
             );
 
             // Some is refracted out into the environment.
-            vec3 exitRefraction = sampleEnvFromObjectDirection(exitRefractObjectDirection, vModelMatrix, envMap);
+            vec3 exitRefraction = sampleEnvFromObjectDirection(exitRefractObjectDirection, vModelMatrix, environmentSampler);
 
-            
-            
             // Some is reflected back into the AABB.
             // We *should* follow this through the AABB again, but we'll have to stop tracking at some point.
-            vec3 exitReflection = sampleEnvFromObjectDirection(exitReflectObjectDirection, vModelMatrix, envMap);
+            vec3 exitReflection = sampleEnvFromObjectDirection(exitReflectObjectDirection, vModelMatrix, environmentSampler);
 
             vec3 interiorColour = mix(exitRefraction, exitReflection, exitReflectance);
             gl_FragColor.rgba = vec4(mix(interiorColour, surfaceReflection, surfaceReflectance), 1.0);

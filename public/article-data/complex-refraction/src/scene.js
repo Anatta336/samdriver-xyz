@@ -8,8 +8,9 @@ import {
     Vector2,
     ACESFilmicToneMapping,
     ShaderMaterial,
-    BoxGeometry,
     Vector3,
+    DataTexture,
+    CubeTextureLoader,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
@@ -34,13 +35,18 @@ export default (holderName) => {
     let composer = null;
 
     const geometry = {};
+    const texture = {};
     const material = {};
     const mesh = {};
     let hdri = null;
 
+    let isTextureReady = false;
+    let isGeometryReady = false;
+    let isEnvironmentMapReady = false;
+
     createCamera();
     prepareRenderer();
-    prepareMaterial();
+    loadMaterial();
     loadGeometry();
     loadEnvironmentMap();
 
@@ -113,19 +119,6 @@ export default (holderName) => {
         renderer.setAnimationLoop(perFrame);
     }
 
-    function prepareMaterial() {
-        material.bottle = new ShaderMaterial({
-            uniforms: {
-                envMap: { value: null },
-                refractiveIndexOutside: { value: 1.0 },
-                refractiveIndexInside: { value: 1.5 },
-                aabbExtent: { value: new Vector3(0.07, 0.09, 0.04) },
-            },
-            vertexShader: RefractShader.vertexShader,
-            fragmentShader: RefractShader.fragmentShader,
-        });
-    }
-
     function createCamera() {
         camera = new PerspectiveCamera(75, getHolderAspectRatio(), 0.001, 5.00);
 
@@ -143,13 +136,39 @@ export default (holderName) => {
         return holderElement.clientWidth / holderElement.clientHeight;
     }
 
+    function loadMaterial() {
+        const cubeLoader = new CubeTextureLoader();
+		cubeLoader.setPath('/article-data/complex-refraction/bottle/');
+
+		texture.interior = cubeLoader.load([
+            'interior-pos-x.png',
+            'interior-neg-x.png',
+            'interior-pos-y.png',
+            'interior-neg-y.png',
+            'interior-pos-z.png',
+            'interior-neg-z.png',
+        ]);
+
+        texture.exterior = cubeLoader.load([
+            'exterior-pos-x.png',
+            'exterior-neg-x.png',
+            'exterior-pos-y.png',
+            'exterior-neg-y.png',
+            'exterior-pos-z.png',
+            'exterior-neg-z.png',
+        ]);
+
+        isTextureReady = true;
+        createMeshIfReady();
+    }
+
     function loadGeometry() {
         const gltfLoader = new GLTFLoader();
-        gltfLoader.load('/article-data/complex-refraction/bottle-external.glb', (gltf) => {
+        gltfLoader.load('/article-data/complex-refraction/bottle/bottle-external.glb', (gltf) => {
             geometry.bottle = gltf.scene.children[0].geometry;
 
-            mesh.bottle = new Mesh(geometry.bottle, material.bottle);
-            scene.add(mesh.bottle);
+            isGeometryReady = true;
+            createMeshIfReady();
         });
     }
 
@@ -158,16 +177,44 @@ export default (holderName) => {
         .then((texture) => {
             texture.mapping = EquirectangularReflectionMapping;
             hdri = texture;
-
+            
             scene.environment = hdri;
-            material.bottle.uniforms.envMap.value = hdri.clone();
-
             scene.background = hdri;
             scene.backgroundIntensity = 0.8;
             scene.backgroundBlurriness = 0;
+
+            isEnvironmentMapReady = true;
+            createMeshIfReady();
         })
         .catch((error) => {
             console.error('Error loading HDR.', error);
         });
+    }
+
+    function createMeshIfReady() {
+        if (!isTextureReady || !isGeometryReady || !isEnvironmentMapReady) {
+            // Not ready yet.
+            return;
+        }
+        DataTexture
+
+        console.log('texture.interior:', texture.interior);
+        console.log('hdri:', hdri);
+
+        material.bottle = new ShaderMaterial({
+            uniforms: {
+                environmentSampler: { value: hdri.clone() },
+                interiorSampler: { value: texture.interior },
+                exteriorSampler: { value: texture.exterior },
+                refractiveIndexOutside: { value: 1.0 },
+                refractiveIndexInside: { value: 1.5 },
+                aabbExtent: { value: new Vector3(0.07, 0.09, 0.04) },
+            },
+            vertexShader: RefractShader.vertexShader,
+            fragmentShader: RefractShader.fragmentShader,
+        });
+
+        mesh.bottle = new Mesh(geometry.bottle, material.bottle);
+        scene.add(mesh.bottle);
     }
 }

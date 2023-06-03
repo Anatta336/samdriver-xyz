@@ -18,6 +18,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { RefractShader } from './refractShader.js';
 import { FilmNoisePass } from './FilmNoisePass.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export default (holderName) => {
     const holderElement = document.getElementById(holderName);
@@ -27,66 +28,21 @@ export default (holderName) => {
     }
 
     const scene = new Scene();
-
     let camera = null;
     let cameraControl = null;
-    createCamera();
+    let renderer = null;
+    let composer = null;
 
-    const renderer = new WebGLRenderer({ 
-        antialias: true,
-        alpha: true,
-        premultipliedAlpha: false,
-        stencil: false,
-    });
-    renderer.alpha = true;
-    renderer.setClearColor(0x000000, 0);
-
-    renderer.setSize(holderElement.clientWidth, holderElement.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-
-    // Linear space for good bloom and tonemapping results.
-    renderer.outputColorSpace = LinearSRGBColorSpace;
-    renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.3;
-
-    const renderPass = new RenderPass(scene, camera);
-
-    const bloomPass = new UnrealBloomPass(
-        new Vector2(holderElement.clientWidth, holderElement.clientHeight),
-        9.00, // strength
-        0.80, // radius
-        0.90, // threshold
-    );
-
-    const noisePass = new FilmNoisePass(0.03);
-
-    const composer = new EffectComposer(renderer);
-    composer.addPass(renderPass);
-    // composer.addPass(bloomPass);
-    // composer.addPass(noisePass);
-
-    // add to DOM.
-    holderElement.appendChild(renderer.domElement);
-
-    const geometry = new BoxGeometry(0.07, 0.09, 0.03);
-    const material = new ShaderMaterial({
-        uniforms: {
-            envMap: { value: null },
-            refractiveIndexOutside: { value: 1.0 },
-            refractiveIndexInside: { value: 1.5 },
-            aabbExtent: { value: new Vector3(0.07, 0.09, 0.03) },
-        },
-        vertexShader: RefractShader.vertexShader,
-        fragmentShader: RefractShader.fragmentShader,
-    });
-
-    const mesh = new Mesh(geometry, material);
-    scene.add(mesh);
-
+    const geometry = {};
+    const material = {};
+    const mesh = {};
     let hdri = null;
-    loadEnvironmentMap();
 
-    renderer.setAnimationLoop(perFrame);
+    createCamera();
+    prepareRenderer();
+    prepareMaterial();
+    loadGeometry();
+    loadEnvironmentMap();
 
     function perFrame() {
         resizeToFit();
@@ -116,6 +72,60 @@ export default (holderName) => {
         camera.updateProjectionMatrix();
     }
 
+    function prepareRenderer() {
+        renderer = new WebGLRenderer({ 
+            antialias: true,
+            alpha: true,
+            premultipliedAlpha: false,
+            stencil: false,
+        });
+        renderer.alpha = true;
+        renderer.setClearColor(0x000000, 0);
+    
+        renderer.setSize(holderElement.clientWidth, holderElement.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+    
+        // Linear space for good bloom and tonemapping results.
+        renderer.outputColorSpace = LinearSRGBColorSpace;
+        renderer.toneMapping = ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+    
+        const renderPass = new RenderPass(scene, camera);
+    
+        const bloomPass = new UnrealBloomPass(
+            new Vector2(holderElement.clientWidth, holderElement.clientHeight),
+            9.00, // strength
+            0.80, // radius
+            0.99, // threshold
+        );
+    
+        const noisePass = new FilmNoisePass(0.04);
+    
+        composer = new EffectComposer(renderer);
+        composer.addPass(renderPass);
+        composer.addPass(bloomPass);
+        composer.addPass(noisePass);
+    
+        // Add canvas to DOM.
+        holderElement.appendChild(renderer.domElement);
+
+        // Set up to render each frame.
+        renderer.setAnimationLoop(perFrame);
+    }
+
+    function prepareMaterial() {
+        material.bottle = new ShaderMaterial({
+            uniforms: {
+                envMap: { value: null },
+                refractiveIndexOutside: { value: 1.0 },
+                refractiveIndexInside: { value: 1.5 },
+                aabbExtent: { value: new Vector3(0.07, 0.09, 0.04) },
+            },
+            vertexShader: RefractShader.vertexShader,
+            fragmentShader: RefractShader.fragmentShader,
+        });
+    }
+
     function createCamera() {
         camera = new PerspectiveCamera(75, getHolderAspectRatio(), 0.001, 5.00);
 
@@ -133,6 +143,16 @@ export default (holderName) => {
         return holderElement.clientWidth / holderElement.clientHeight;
     }
 
+    function loadGeometry() {
+        const gltfLoader = new GLTFLoader();
+        gltfLoader.load('/article-data/complex-refraction/bottle-external.glb', (gltf) => {
+            geometry.bottle = gltf.scene.children[0].geometry;
+
+            mesh.bottle = new Mesh(geometry.bottle, material.bottle);
+            scene.add(mesh.bottle);
+        });
+    }
+
     function loadEnvironmentMap() {
         new RGBELoader().setPath('/article-data/complex-refraction/').loadAsync('garden_nook_1k.hdr')
         .then((texture) => {
@@ -140,10 +160,10 @@ export default (holderName) => {
             hdri = texture;
 
             scene.environment = hdri;
-            mesh.material.uniforms.envMap.value = hdri.clone();
+            material.bottle.uniforms.envMap.value = hdri.clone();
 
             scene.background = hdri;
-            scene.backgroundIntensity = 0.5;
+            scene.backgroundIntensity = 0.8;
             scene.backgroundBlurriness = 0;
         })
         .catch((error) => {

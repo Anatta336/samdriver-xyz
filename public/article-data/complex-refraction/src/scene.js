@@ -9,6 +9,8 @@ import {
     ACESFilmicToneMapping,
     ShaderMaterial,
     BoxGeometry,
+    MeshPhysicalMaterial,
+    MeshStandardMaterial,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
@@ -16,6 +18,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { RefractShader } from './refractShader.js';
+import { FilmNoisePass } from './FilmNoisePass.js';
 
 export default (holderName) => {
     const holderElement = document.getElementById(holderName);
@@ -56,23 +59,34 @@ export default (holderName) => {
         0.90, // threshold
     );
 
+    const noisePass = new FilmNoisePass(0.03);
+
     const composer = new EffectComposer(renderer);
     composer.addPass(renderPass);
     composer.addPass(bloomPass);
+    composer.addPass(noisePass);
 
     // add to DOM.
     holderElement.appendChild(renderer.domElement);
 
     const geometry = new BoxGeometry(0.07, 0.09, 0.03);
-    const material = new ShaderMaterial({
-        uniforms: {
-            envMap: { value: null },
-            refractiveIndexOutside: { value: 1.0 },
-            refractiveIndexInside: { value: 1.5 },
-        },
-        vertexShader: RefractShader.vertexShader,
-        fragmentShader: RefractShader.fragmentShader,
+    const material = new MeshStandardMaterial({
+        color: 0xa0ff50,
+        metalness: 0.95,
+        roughness: 0.2,
     });
+    // const material = new ShaderMaterial({
+    //     uniforms: {
+    //         envMap: { value: null },
+    //         refractiveIndexOutside: { value: 1.0 },
+    //         refractiveIndexInside: { value: 1.5 },
+    //         aabbWidth: { value: 0.07 },
+    //         aabbHeight: { value: 0.09 },
+    //         aabbDepth: { value: 0.03 },
+    //     },
+    //     vertexShader: RefractShader.vertexShader,
+    //     fragmentShader: RefractShader.fragmentShader,
+    // });
 
     const mesh = new Mesh(geometry, material);
     scene.add(mesh);
@@ -134,7 +148,7 @@ export default (holderName) => {
             hdri = texture;
 
             scene.environment = hdri;
-            mesh.material.uniforms.envMap.value = hdri.clone();
+            // mesh.material.uniforms.envMap.value = hdri.clone();
 
             scene.background = hdri;
             scene.backgroundIntensity = 0.5;

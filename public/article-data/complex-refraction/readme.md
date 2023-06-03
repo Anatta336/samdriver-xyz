@@ -6,7 +6,7 @@ JavaScript for this article needs to be built, which is done using Rollup. Assum
 
 Navigate to the article's directory (e.g. `public/article-data/complex-refraction/`)
 ```
-docker-compose run --rm npm install && npm run build
+docker-compose run --rm npm install
 ```
 Docker should set itself up, then npm will run inside the container and install dependencies.
 

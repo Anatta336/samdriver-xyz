@@ -9,8 +9,7 @@ import {
     ACESFilmicToneMapping,
     ShaderMaterial,
     BoxGeometry,
-    MeshPhysicalMaterial,
-    MeshStandardMaterial,
+    Vector3,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
@@ -63,30 +62,23 @@ export default (holderName) => {
 
     const composer = new EffectComposer(renderer);
     composer.addPass(renderPass);
-    composer.addPass(bloomPass);
-    composer.addPass(noisePass);
+    // composer.addPass(bloomPass);
+    // composer.addPass(noisePass);
 
     // add to DOM.
     holderElement.appendChild(renderer.domElement);
 
     const geometry = new BoxGeometry(0.07, 0.09, 0.03);
-    const material = new MeshStandardMaterial({
-        color: 0xa0ff50,
-        metalness: 0.95,
-        roughness: 0.2,
+    const material = new ShaderMaterial({
+        uniforms: {
+            envMap: { value: null },
+            refractiveIndexOutside: { value: 1.0 },
+            refractiveIndexInside: { value: 1.5 },
+            aabbExtent: { value: new Vector3(0.07, 0.09, 0.03) },
+        },
+        vertexShader: RefractShader.vertexShader,
+        fragmentShader: RefractShader.fragmentShader,
     });
-    // const material = new ShaderMaterial({
-    //     uniforms: {
-    //         envMap: { value: null },
-    //         refractiveIndexOutside: { value: 1.0 },
-    //         refractiveIndexInside: { value: 1.5 },
-    //         aabbWidth: { value: 0.07 },
-    //         aabbHeight: { value: 0.09 },
-    //         aabbDepth: { value: 0.03 },
-    //     },
-    //     vertexShader: RefractShader.vertexShader,
-    //     fragmentShader: RefractShader.fragmentShader,
-    // });
 
     const mesh = new Mesh(geometry, material);
     scene.add(mesh);
@@ -100,7 +92,7 @@ export default (holderName) => {
         resizeToFit();
         cameraControl.update();
 
-        mesh.rotation.y += 0.003;
+        // mesh.rotation.y += 0.003;
 
         composer.render();
     }
@@ -133,7 +125,7 @@ export default (holderName) => {
         cameraControl.minDistance = 0.07;
 
         cameraControl.target.set(0, 0, 0);
-        camera.position.set(0, 0, 0.5);
+        camera.position.set(0, 0, 0.16);
         cameraControl.update();
     }
 
@@ -148,7 +140,7 @@ export default (holderName) => {
             hdri = texture;
 
             scene.environment = hdri;
-            // mesh.material.uniforms.envMap.value = hdri.clone();
+            mesh.material.uniforms.envMap.value = hdri.clone();
 
             scene.background = hdri;
             scene.backgroundIntensity = 0.5;

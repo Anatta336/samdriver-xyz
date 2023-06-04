@@ -50,15 +50,6 @@ const RefractShader = {
         varying vec3 vObjectCameraPosition;
         varying mat4 vModelMatrix;
 
-        vec3 safeDivision(in vec3 a, in vec3 b) {
-            // Avoid divide by zero.
-            b.x = abs(b.x) < 0.000001 ? (b.x >= 0.0 ? b.x = 0.000001 : b.x = -0.000001) : b.x;
-            b.y = abs(b.y) < 0.000001 ? (b.y >= 0.0 ? b.y = 0.000001 : b.y = -0.000001) : b.y;
-            b.z = abs(b.z) < 0.000001 ? (b.z >= 0.0 ? b.z = 0.000001 : b.z = -0.000001) : b.z;
-
-            return a / b;
-        }
-
         // Will return (0,0,0) in case of total internal reflection.
         vec3 applyRefraction(vec3 incoming, vec3 surfaceNormal, float indexA, float indexB) {
             // In reality refractive index should never be less than 1, but just in case.
@@ -119,8 +110,8 @@ const RefractShader = {
             in vec3 aabbMin, in vec3 aabbMax,
             out float tIntersect
         ) {
-            vec3 t1 = safeDivision(aabbMin - rayPosition, rayDirection);
-            vec3 t2 = safeDivision(aabbMax - rayPosition, rayDirection);
+            vec3 t1 = (aabbMin - rayPosition) / rayDirection;
+            vec3 t2 = (aabbMax - rayPosition) / rayDirection;
 
             float minOffset = 0.00001;
 

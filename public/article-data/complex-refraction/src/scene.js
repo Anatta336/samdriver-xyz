@@ -9,7 +9,6 @@ import {
     ACESFilmicToneMapping,
     ShaderMaterial,
     Vector3,
-    DataTexture,
     CubeTextureLoader,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -196,10 +195,6 @@ export default (holderName) => {
             // Not ready yet.
             return;
         }
-        DataTexture
-
-        console.log('texture.interior:', texture.interior);
-        console.log('hdri:', hdri);
 
         material.bottle = new ShaderMaterial({
             uniforms: {
@@ -208,7 +203,8 @@ export default (holderName) => {
                 exteriorSampler: { value: texture.exterior },
                 refractiveIndexOutside: { value: 1.0 },
                 refractiveIndexInside: { value: 1.5 },
-                aabbExtent: { value: new Vector3(0.07, 0.09, 0.04) },
+                aabbExterior: { value: new Vector3(0.07, 0.09, 0.04) },
+                aabbInterior: { value: new Vector3(0.0596, 0.0678, 0.0286) },
             },
             vertexShader: RefractShader.vertexShader,
             fragmentShader: RefractShader.fragmentShader,

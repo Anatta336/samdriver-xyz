@@ -202,99 +202,113 @@ const RefractShader = {
         */
 
         void main() {
-            vec3 surfaceObjectNormal = sampleNormal(vObjectPosition.xyz, exteriorSampler).xyz;
-            vec3 surfaceObjectPosition = vObjectPosition.xyz;
+            // Ray enters the mesh at A.
+            vec3 aNormal = sampleNormal(vObjectPosition.xyz, exteriorSampler).xyz;
+            vec3 aPosition = vObjectPosition.xyz;
 
-            // Values to be filled by castThroughInterface.
-            vec3 surfaceRefractObjectDirection = vec3(0.0, 0.0, 0.0);
-            vec3 surfaceReflectObjectDirection = vec3(0.0, 0.0, 0.0);
-            float surfaceReflectance = 0.0;
-            castThroughInterface(normalize(surfaceObjectPosition - vObjectCameraPosition), surfaceObjectNormal,
+            // Handle interface at A.
+            vec3 aRefractDirection = vec3(0.0, 0.0, 0.0);
+            vec3 aReflectDirection = vec3(0.0, 0.0, 0.0);
+            float aReflectance = 0.0;
+            castThroughInterface(normalize(aPosition - vObjectCameraPosition), aNormal,
                 refractiveIndexOutside, refractiveIndexInside,
-                surfaceReflectObjectDirection, surfaceRefractObjectDirection, surfaceReflectance
+                aReflectDirection, aRefractDirection, aReflectance
             );
 
-            // Some light is immediately reflected out to environment from surface.
-            vec3 surfaceReflection = sampleEnvFromObjectDirection(surfaceReflectObjectDirection, vModelMatrix, environmentSampler);
+            // Some is immediately reflected back out of the mesh.
+            vec3 aColourReflect = sampleEnvFromObjectDirection(aReflectDirection, vModelMatrix, environmentSampler);
 
-            // Find where the refracted ray enters the interior AABB.
-            vec3 enterInteriorObjectPosition = vec3(0.0, 0.0, 0.0);
-            float tEnterInterior = 0.0;
+            // aRefracted may enter interior volume, if so it's at B.
+            vec3 bPosition = vec3(0.0, 0.0, 0.0);
+            float bDistance = 0.0;
             castTraverseInsideAABB(
-                surfaceRefractObjectDirection, surfaceObjectPosition, aabbInterior,
-                enterInteriorObjectPosition, tEnterInterior
+                aRefractDirection, aPosition, aabbInterior,
+                bPosition, bDistance
             );
+
+            // TODO: don't assume aRefracted always enters interior volume.
 
             // Find the normal of the interior at the point where the ray enters.
-            vec3 enterInteriorObjectNormal = sampleNormal(enterInteriorObjectPosition, interiorSampler).xyz;
+            vec3 bNormal = sampleNormal(bPosition, interiorSampler).xyz;
 
-            // TODO: around here is where we'd handle liquid filling.
+            // TODO: around here is where we'd start handling liquid filling.
 
             // Find how the ray gets split when entering interior space.
-            vec3 interiorRefractObjectDirection = vec3(0.0, 0.0, 0.0);
-            vec3 interiorReflectObjectDirection = vec3(0.0, 0.0, 0.0);
-            float interiorReflectance = 0.0;
-            castThroughInterface(surfaceRefractObjectDirection, enterInteriorObjectNormal,
+            vec3 bRefractDirection = vec3(0.0, 0.0, 0.0);
+            vec3 bReflectDirection = vec3(0.0, 0.0, 0.0);
+            float bReflectance = 0.0;
+            castThroughInterface(aRefractDirection, bNormal,
                 refractiveIndexInside, refractiveIndexOutside,
-                interiorReflectObjectDirection, interiorRefractObjectDirection, interiorReflectance
+                bReflectDirection, bRefractDirection, bReflectance
             );
 
-            // Some is reflected - on this interface likely to be significant so worth handling.
-            
+            // TODO: If bReflectance is 1 (or nearly 1) we should handle that instead of the refraction.
+            // Could that be done in some cute way that uses same operations with different data?
 
-            // Some will be reflected. Ignoring for now, although this one is likely to have a decent amount.
+            vec3 beforeDPosition = vec3(0.0, 0.0, 0.0);
+            vec3 dIncomingDirection = vec3(0.0, 0.0, 0.0);
 
-            // Find where the ray leaves the interior AABB.
-            vec3 exitInteriorObjectPosition = vec3(0.0, 0.0, 0.0);
-            float tExitInterior = 0.0;
+            if (bReflectance >= 0.999) {
+
+                beforeDPosition = bPosition;
+                dIncomingDirection = bReflectDirection;
+
+            } else {
+
+                // Find where the ray leaves the interior AABB.
+                vec3 cPosition = vec3(0.0, 0.0, 0.0);
+                float cDistance = 0.0;
+                castTraverseInsideAABB(
+                    bRefractDirection, bPosition, aabbInterior,
+                    cPosition, cDistance
+                );
+
+                // Find the normal of the interior at the point where the ray exits.
+                vec3 cNormal = sampleNormal(cPosition, interiorSampler).xyz;
+
+                // Find how the ray gets split when leaving the interior space.
+                vec3 cRefractDirection = vec3(0.0, 0.0, 0.0);
+                vec3 cReflectDirection = vec3(0.0, 0.0, 0.0);
+                float afterInteriorReflectance = 0.0;
+                castThroughInterface(bRefractDirection, cNormal * -1.0,
+                    refractiveIndexOutside, refractiveIndexInside,
+                    cReflectDirection, cRefractDirection, afterInteriorReflectance
+                );
+
+                // Ignoring reflection here. This one is likely to be small, so safe to ignore.
+
+                dIncomingDirection = cRefractDirection;
+                beforeDPosition = cPosition;
+            }
+
+            // Find where the ray exits the mesh.
+            vec3 dPosition = vec3(0.0, 0.0, 0.0);
+            float dDistance = 0.0;
             castTraverseInsideAABB(
-                interiorRefractObjectDirection, enterInteriorObjectPosition, aabbInterior,
-                exitInteriorObjectPosition, tExitInterior
+                dIncomingDirection, beforeDPosition, aabbExterior,
+                dPosition, dDistance
             );
+            vec3 dNormal = sampleNormal(dPosition, exteriorSampler).xyz;
 
-            // Find the normal of the interior at the point where the ray exits.
-            // TODO: might need to flip.
-            vec3 exitInteriorObjectNormal = sampleNormal(exitInteriorObjectPosition, interiorSampler).xyz;
+            // Find how the refracted ray gets split when leaving the mesh.
+            vec3 dRefractDirection = vec3(0.0, 0.0, 0.0);
+            vec3 dReflectDirection = vec3(0.0, 0.0, 0.0);
+            float dReflectance = 0.0;
 
-            // Find how the ray gets split when leaving the interior space.
-            vec3 afterInteriorRefractObjectDirection = vec3(0.0, 0.0, 0.0);
-            vec3 afterInteriorReflectObjectDirection = vec3(0.0, 0.0, 0.0);
-            float afterInteriorReflectance = 0.0;
-            castThroughInterface(interiorRefractObjectDirection, exitInteriorObjectNormal * -1.0,
-                refractiveIndexOutside, refractiveIndexInside,
-                afterInteriorReflectObjectDirection, afterInteriorRefractObjectDirection, afterInteriorReflectance
-            );
-
-            // Again ignoring reflection. This one is likely to be small, so safe to ignore.
-
-            // Find where the ray exits the AABB.
-            vec3 exitObjectPosition = vec3(0.0, 0.0, 0.0);
-            float tExit = 0.0;
-            castTraverseInsideAABB(
-                afterInteriorReflectObjectDirection, exitInteriorObjectPosition, aabbExterior,
-                exitObjectPosition, tExit
-            );
-            
-            vec3 exitObjectNormal = sampleNormal(exitObjectPosition, exteriorSampler).xyz;
-
-            // Find how the refracted ray gets split when hitting the exit of AABB.
-            vec3 exitRefractObjectDirection = vec3(0.0, 0.0, 0.0);
-            vec3 exitReflectObjectDirection = vec3(0.0, 0.0, 0.0);
-            float exitReflectance = 0.0;
-            castThroughInterface(surfaceRefractObjectDirection, exitObjectNormal * -1.0,
+            castThroughInterface(dIncomingDirection, dNormal * -1.0,
                 refractiveIndexInside, refractiveIndexOutside,
-                exitReflectObjectDirection, exitRefractObjectDirection, exitReflectance
+                dReflectDirection, dRefractDirection, dReflectance
             );
 
             // Some is refracted out into the environment.
-            vec3 exitRefraction = sampleEnvFromObjectDirection(exitRefractObjectDirection, vModelMatrix, environmentSampler);
+            vec3 exitRefraction = sampleEnvFromObjectDirection(dRefractDirection, vModelMatrix, environmentSampler);
 
             // Some is reflected back into the AABB.
             // We *should* follow this through the AABB again, but we'll have to stop tracking at some point.
-            vec3 exitReflection = sampleEnvFromObjectDirection(exitReflectObjectDirection, vModelMatrix, environmentSampler);
+            vec3 exitReflection = sampleEnvFromObjectDirection(dReflectDirection, vModelMatrix, environmentSampler);
 
-            vec3 interiorColour = mix(exitRefraction, exitReflection, exitReflectance);
-            gl_FragColor.rgba = vec4(mix(interiorColour, surfaceReflection, surfaceReflectance), 1.0);
+            vec3 interiorColour = mix(exitRefraction, exitReflection, dReflectance);
+            gl_FragColor.rgba = vec4(mix(interiorColour, aColourReflect, aReflectance), 1.0);
         }`
 };
 

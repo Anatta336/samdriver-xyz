@@ -65,24 +65,24 @@ const RefractShader = {
         varying vec3 vWorldCameraPosition;
         varying mat4 vModelMatrix;
 
-        float smallestPositive(in vec3 a, in vec3 b) {
-            // Ignore any negative values by setting them to be very large.
-            a.x = a.x <= 0.0 ? 1e10 : a.x;
-            a.y = a.y <= 0.0 ? 1e10 : a.y;
-            a.z = a.z <= 0.0 ? 1e10 : a.z;
-            b.x = b.x <= 0.0 ? 1e10 : b.x;
-            b.y = b.y <= 0.0 ? 1e10 : b.y;
-            b.z = b.z <= 0.0 ? 1e10 : b.z;
+        // float smallestPositive(in vec3 a, in vec3 b) {
+        //     // Ignore any negative values by setting them to be very large.
+        //     a.x = a.x <= 0.0 ? 1e10 : a.x;
+        //     a.y = a.y <= 0.0 ? 1e10 : a.y;
+        //     a.z = a.z <= 0.0 ? 1e10 : a.z;
+        //     b.x = b.x <= 0.0 ? 1e10 : b.x;
+        //     b.y = b.y <= 0.0 ? 1e10 : b.y;
+        //     b.z = b.z <= 0.0 ? 1e10 : b.z;
 
-            vec3 c = min(a, b);
-            return min(min(c.x, c.y), c.z);
-        }
+        //     vec3 c = min(a, b);
+        //     return min(min(c.x, c.y), c.z);
+        // }
 
         vec3 safeDivision(in vec3 a, in vec3 b) {
             // Avoid divide by zero.
-            b.x = abs(b.x) < 0.0001 ? (b.x > 0.0 ? b.x = 0.0001 : b.x = -0.001) : b.x;
-            b.y = abs(b.y) < 0.0001 ? (b.y > 0.0 ? b.y = 0.0001 : b.y = -0.001) : b.y;
-            b.z = abs(b.z) < 0.0001 ? (b.z > 0.0 ? b.z = 0.0001 : b.z = -0.001) : b.z;
+            b.x = abs(b.x) < 0.000001 ? (b.x >= 0.0 ? b.x = 0.000001 : b.x = -0.000001) : b.x;
+            b.y = abs(b.y) < 0.000001 ? (b.y >= 0.0 ? b.y = 0.000001 : b.y = -0.000001) : b.y;
+            b.z = abs(b.z) < 0.000001 ? (b.z >= 0.0 ? b.z = 0.000001 : b.z = -0.000001) : b.z;
 
             return a / b;
         }
@@ -134,26 +134,60 @@ const RefractShader = {
             refractDirection = refract(incomingDirection, surfaceNormal, indexA / indexB);
         }
 
-        // Assuming ray starts inside the AABB, find where it exits.
-        void castTraverseInsideAABB(in vec3 incomingDirection, in vec3 incomingPosition, in vec3 aabbExtent,
-            out vec3 exitPosition, out float tExit
+        float max4(in float a, in float b, in float c, in float d) {
+            return max(max(a, b), max(c, d));
+        }
+
+        float min4(in float a, in float b, in float c, in float d) {
+            return min(min(a, b), min(c, d));
+        }
+
+        // tIntersect -1.0 if no intersection, otherwise the distance along the ray to the intersection.
+        void aabbIntersection(in vec3 rayDirection, in vec3 rayPosition,
+            in vec3 aabbMin, in vec3 aabbMax,
+            out float tIntersect
+        ) {
+            vec3 t1 = safeDivision(aabbMin - rayPosition, rayDirection);
+            vec3 t2 = safeDivision(aabbMax - rayPosition, rayDirection);
+
+            float minOffset = 0.00001;
+
+            float tMin = max4(minOffset, min(t1.x, t2.x), min(t1.y, t2.y), min(t1.z, t2.z));
+            float tMax = min4(1e12, max(t1.x, t2.x), max(t1.y, t2.y), max(t1.z, t2.z));
+
+            if (tMin <= minOffset && tMax > tMin) {
+                // Ray starts inside the AABB.
+                tIntersect = tMax;
+            } else {
+                // Ray starts outside the AABB.
+                tIntersect = ((tMin <= minOffset) || (tMin > tMax))
+                    ? -1.0
+                    : tMin;
+            }
+        }
+
+/*
+        // Find the first place a ray hits the AABB, either from inside or outside.
+        void traverseToAabbFace(in vec3 incomingDirection, in vec3 incomingPosition, in vec3 aabbExtent,
+            out vec3 hitPosition, out float hitDistance
         ) {
             // AABB defined by extent.
             vec3 aabbExtentNegative = vec3(-aabbExtent.x * 0.5, -aabbExtent.y * 0.5, -aabbExtent.z * 0.5);
-            vec3 aabbExtentPositive = vec3(aabbExtent.x * 0.5, aabbExtent.y * 0.5, aabbExtent.z * 0.5);
+            vec3 aabbExtentPositive = vec3( aabbExtent.x * 0.5,  aabbExtent.y * 0.5,  aabbExtent.z * 0.5);
 
             // Move start position along a little to avoid z-fighting.
             incomingPosition += incomingDirection * 0.0001;
 
             // Each value in tInterceptA.xyz, tInterceptB.xyz is "when" the ray hits the AABB.
             // Negative values should be ignored, as that's in the wrong direction.
-            tExit = smallestPositive(
+            hitDistance = smallestPositive(
                 safeDivision((aabbExtentNegative - incomingPosition), incomingDirection),
                 safeDivision((aabbExtentPositive - incomingPosition), incomingDirection)
             );
 
-            exitPosition = incomingPosition + incomingDirection * tExit;
+            hitPosition = incomingPosition + incomingDirection * hitDistance;
         }
+*/
 
         vec3 sampleEnvFromObjectDirection(in vec3 objectDirection, in mat4 modelMatrix, in samplerCube environmentSampler) {
             vec3 worldDirection = (modelMatrix * vec4(objectDirection.xyz, 0.0)).xyz;
@@ -171,37 +205,13 @@ const RefractShader = {
             return normal;
         }
 
-        /*
-        
-        A is where ray enters the mesh.
-           Given by vObjectPosition.
-
-        Some is reflected off at A, called rayAReflect.
-        Most is refracted, called rayARefract.
-        
-        B is where rayARefract enters the interior volume.
-            rayARefract doesn't always enter the interior volume.
-
-        rayARefractBReflect
-            Ray that's reflected at interface to interior.
-        
-        E where rayARefractBReflect leaves exterior.
-            In reality some (potentially a lot) is reflected, but we'll pretend it isn't.
-
-        rayARefractBRefract
-            Ray that's refracted at interface to interior, and travels into interior.
-
-
-        C is where the ray exits the interior volume.
-            Any ray that enters the interior volume must exit it.
-        
-        D is where the ray exits 
-
-        ..etc
-        
-        */
-
         void main() {
+            vec3 aabbInternalMin = aabbInterior * -0.5;
+            vec3 aabbInternalMax = aabbInterior * 0.5;
+
+            vec3 aabbExternalMin = aabbExterior * -0.5;
+            vec3 aabbExternalMax = aabbExterior * 0.5;
+
             // Ray enters the mesh at A.
             vec3 aNormal = sampleNormal(vObjectPosition.xyz, exteriorSampler).xyz;
             vec3 aPosition = vObjectPosition.xyz;
@@ -219,16 +229,25 @@ const RefractShader = {
             vec3 aColourReflect = sampleEnvFromObjectDirection(aReflectDirection, vModelMatrix, environmentSampler);
 
             // aRefracted may enter interior volume, if so it's at B.
-            vec3 bPosition = vec3(0.0, 0.0, 0.0);
             float bDistance = 0.0;
-            castTraverseInsideAABB(
-                aRefractDirection, aPosition, aabbInterior,
-                bPosition, bDistance
+            aabbIntersection(aRefractDirection, aPosition,
+                aabbInternalMin, aabbInternalMax,
+                bDistance
             );
 
-            // TODO: don't assume aRefracted always enters interior volume.
+            vec3 bPosition = bDistance >= -0.5
+                ? aPosition + aRefractDirection * bDistance
+                : aPosition;
 
-            // Find the normal of the interior at the point where the ray enters.
+            if (bDistance < -0.5) {
+                // TODO: properly handle when ray doesn't enter interior volume.
+
+                // Pink ray doesn't enter interior volume.
+                gl_FragColor = vec4(0.95, 0.8, 0.9, 1.0);
+                return;
+            }
+
+            // Find the normal of the interior at the point where the ray enters interior.
             vec3 bNormal = sampleNormal(bPosition, interiorSampler).xyz;
 
             // TODO: around here is where we'd start handling liquid filling.
@@ -242,37 +261,44 @@ const RefractShader = {
                 bReflectDirection, bRefractDirection, bReflectance
             );
 
-            // TODO: If bReflectance is 1 (or nearly 1) we should handle that instead of the refraction.
-            // Could that be done in some cute way that uses same operations with different data?
-
             vec3 beforeDPosition = vec3(0.0, 0.0, 0.0);
             vec3 dIncomingDirection = vec3(0.0, 0.0, 0.0);
 
             if (bReflectance >= 0.999) {
 
+                // Total internal reflection, so just follow reflection ray.
                 beforeDPosition = bPosition;
                 dIncomingDirection = bReflectDirection;
 
             } else {
 
                 // Find where the ray leaves the interior AABB.
-                vec3 cPosition = vec3(0.0, 0.0, 0.0);
                 float cDistance = 0.0;
-                castTraverseInsideAABB(
-                    bRefractDirection, bPosition, aabbInterior,
-                    cPosition, cDistance
+                aabbIntersection(bRefractDirection, bPosition,
+                    aabbInternalMin, aabbInternalMax,
+                    cDistance
                 );
+
+                vec3 cPosition = (cDistance >= -0.5)
+                    ? (bPosition + bRefractDirection * cDistance)
+                    : bPosition;
 
                 // Find the normal of the interior at the point where the ray exits.
                 vec3 cNormal = sampleNormal(cPosition, interiorSampler).xyz;
 
+                // dump cNormal
+                // gl_FragColor = vec4((cNormal + 1.0) * 0.5, 1.0);
+                // return;
+
+                // Note: cNormal looks correct for the *entry* into interior, not exit.
+
                 // Find how the ray gets split when leaving the interior space.
                 vec3 cRefractDirection = vec3(0.0, 0.0, 0.0);
                 vec3 cReflectDirection = vec3(0.0, 0.0, 0.0);
-                float afterInteriorReflectance = 0.0;
+                float cReflectance = 0.0;
                 castThroughInterface(bRefractDirection, cNormal * -1.0,
                     refractiveIndexOutside, refractiveIndexInside,
-                    cReflectDirection, cRefractDirection, afterInteriorReflectance
+                    cReflectDirection, cRefractDirection, cReflectance
                 );
 
                 // Ignoring reflection here. This one is likely to be small, so safe to ignore.
@@ -282,12 +308,16 @@ const RefractShader = {
             }
 
             // Find where the ray exits the mesh.
-            vec3 dPosition = vec3(0.0, 0.0, 0.0);
             float dDistance = 0.0;
-            castTraverseInsideAABB(
-                dIncomingDirection, beforeDPosition, aabbExterior,
-                dPosition, dDistance
+            aabbIntersection(dIncomingDirection, beforeDPosition,
+                aabbExternalMin, aabbExternalMax,
+                dDistance
             );
+            
+            vec3 dPosition = (dDistance >= 0.0)
+                ? (beforeDPosition + dIncomingDirection * dDistance)
+                : beforeDPosition;
+
             vec3 dNormal = sampleNormal(dPosition, exteriorSampler).xyz;
 
             // Find how the refracted ray gets split when leaving the mesh.

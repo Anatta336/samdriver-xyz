@@ -53,7 +53,9 @@ export default (holderName) => {
         resizeToFit();
         cameraControl.update();
 
-        // mesh.rotation.y += 0.003;
+        if (mesh.bottle) {
+            mesh.bottle.rotation.y += 0.002;
+        }
 
         composer.render();
     }
@@ -99,7 +101,7 @@ export default (holderName) => {
     
         const bloomPass = new UnrealBloomPass(
             new Vector2(holderElement.clientWidth, holderElement.clientHeight),
-            9.00, // strength
+            7.00, // strength
             0.80, // radius
             0.99, // threshold
         );
@@ -119,7 +121,7 @@ export default (holderName) => {
     }
 
     function createCamera() {
-        camera = new PerspectiveCamera(75, getHolderAspectRatio(), 0.001, 5.00);
+        camera = new PerspectiveCamera(50, getHolderAspectRatio(), 0.001, 5.00);
 
         cameraControl = new OrbitControls(camera, holderElement);
         cameraControl.dampingFactor = 0.05;
@@ -127,7 +129,7 @@ export default (holderName) => {
         cameraControl.minDistance = 0.07;
 
         cameraControl.target.set(0, 0, 0);
-        camera.position.set(0, 0, 0.16);
+        camera.position.set(-0.08, -0.03, 0.16);
         cameraControl.update();
     }
 
@@ -172,7 +174,8 @@ export default (holderName) => {
     }
 
     function loadEnvironmentMap() {
-        new RGBELoader().setPath('/article-data/complex-refraction/').loadAsync('garden_nook_1k.hdr')
+        // new RGBELoader().setPath('/article-data/complex-refraction/').loadAsync('garden_nook_1k.hdr')
+        new RGBELoader().setPath('/article-data/complex-refraction/').loadAsync('modern_buildings_2_2k.hdr')
         .then((texture) => {
             texture.mapping = EquirectangularReflectionMapping;
             hdri = texture;
@@ -205,6 +208,8 @@ export default (holderName) => {
                 refractiveIndexInside: { value: 1.5 },
                 aabbExterior: { value: new Vector3(0.07, 0.09, 0.04) },
                 aabbInterior: { value: new Vector3(0.0596, 0.0678, 0.0286) },
+                absorbanceCoefficient: { value: 40.0 },
+                absorbanceColour: { value: new Vector3(1.0, 0.1, 0.8) },
             },
             vertexShader: RefractShader.vertexShader,
             fragmentShader: RefractShader.fragmentShader,

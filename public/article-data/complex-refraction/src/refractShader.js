@@ -13,6 +13,8 @@ const RefractShader = {
         'refactiveIndexInside': { value: 1.5 },
         'aabbExterior': { value: new Vector3(0.07, 0.09, 0.03) },
         'aabbInterior': { value: new Vector3(0.06, 0.08, 0.02) },
+        'absorbanceCoefficient': { value: 0.5 },
+        'absorbanceColour': { value: new Vector3(1.0, 1.0, 0.2) },
     },
 
     vertexShader: /* glsl */`
@@ -41,6 +43,8 @@ const RefractShader = {
         uniform float refractiveIndexInside;
         uniform vec3 aabbExterior;
         uniform vec3 aabbInterior;
+        uniform float absorbanceCoefficient;
+        uniform vec3 absorbanceColour;
 
         varying vec3 vObjectPosition;
         varying vec3 vObjectCameraPosition;
@@ -157,6 +161,8 @@ const RefractShader = {
             vec3 aabbExternalMin = aabbExterior * -0.5;
             vec3 aabbExternalMax = aabbExterior * 0.5;
 
+            float totalDistance = 0.0;
+
             // Ray enters the mesh at A.
             vec3 aNormal = sampleNormal(vObjectPosition.xyz, exteriorSampler).xyz;
             vec3 aPosition = vObjectPosition.xyz;
@@ -180,10 +186,11 @@ const RefractShader = {
                 bDistance
             );
 
+            totalDistance += max(0.0, bDistance);
+
             vec3 bPosition = bDistance >= -0.5
                 ? aPosition + aRefractDirection * bDistance
                 : aPosition;
-
 
             vec3 beforeDPosition = vec3(0.0, 0.0, 0.0);
             vec3 dIncomingDirection = vec3(0.0, 0.0, 0.0);
@@ -225,6 +232,8 @@ const RefractShader = {
                         cDistance
                     );
 
+                    // Don't add to totalDistance, as this is in the interior volume.
+
                     vec3 cPosition = (cDistance >= -0.5)
                         ? (bPosition + bRefractDirection * cDistance)
                         : bPosition;
@@ -232,11 +241,9 @@ const RefractShader = {
                     // Find the normal of the interior at the point where the ray exits.
                     vec3 cNormal = sampleNormal(cPosition, interiorSampler).xyz;
 
-                    // dump cNormal
+                    // Dump cNormal (useful for demo)
                     // gl_FragColor = vec4((cNormal + 1.0) * 0.5, 1.0);
                     // return;
-
-                    // Note: cNormal looks correct for the *entry* into interior, not exit.
 
                     // Find how the ray gets split when leaving the interior space.
                     vec3 cRefractDirection = vec3(0.0, 0.0, 0.0);
@@ -247,7 +254,7 @@ const RefractShader = {
                         cReflectDirection, cRefractDirection, cReflectance
                     );
 
-                    // Ignoring reflection here. This one is likely to be small, so safe to ignore.
+                    // Ignoring reflection here. Going from air to glass so this'll be minor.
 
                     dIncomingDirection = cRefractDirection;
                     beforeDPosition = cPosition;
@@ -260,6 +267,8 @@ const RefractShader = {
                 aabbExternalMin, aabbExternalMax,
                 dDistance
             );
+
+            totalDistance += max(0.0, dDistance);
             
             vec3 dPosition = (dDistance >= 0.0)
                 ? (beforeDPosition + dIncomingDirection * dDistance)
@@ -285,6 +294,19 @@ const RefractShader = {
             vec3 exitReflection = sampleEnvFromObjectDirection(dReflectDirection, vModelMatrix, environmentSampler);
 
             vec3 interiorColour = mix(exitRefraction, exitReflection, dReflectance);
+
+            // Dump distance (useful for demo)
+            // totalDistance *= 8.0;
+            // gl_FragColor.rgba = vec4(totalDistance, totalDistance, totalDistance, 1.0);
+            // return;
+
+            interiorColour = max(
+                vec3(0.0, 0.0, 0.0),
+                interiorColour * exp(
+                    -1.0 * totalDistance * absorbanceCoefficient * absorbanceColour
+                )
+            );
+
             gl_FragColor.rgba = vec4(mix(interiorColour, aColourReflect, aReflectance), 1.0);
         }`
 };

@@ -9,12 +9,19 @@ const RefractShader = {
         'environmentSampler' : { value: null },
         'interiorSampler' : { value: null },
         'exteriorSampler' : { value: null },
-        'refactiveIndexOutside': { value: 1.0 },
-        'refactiveIndexInside': { value: 1.5 },
+
         'aabbExterior': { value: new Vector3(0.07, 0.09, 0.03) },
         'aabbInterior': { value: new Vector3(0.06, 0.08, 0.02) },
-        'absorbanceCoefficient': { value: 0.5 },
-        'absorbanceColour': { value: new Vector3(1.0, 1.0, 0.2) },
+        'waterLevel': { value: 0.0 },
+
+        'refractiveIndexAir': { value: 1.0 },
+        'refractiveIndexGlass': { value: 1.5 },
+        'refractiveIndexWater': { value: 1.3 },
+
+        'glassAbsorbanceCoefficient': { value: 0.5 },
+        'glassAbsorbanceColour': { value: new Vector3(1.0, 1.0, 0.2) },
+        'waterAbsorbanceCoefficient': { value: 0.5 },
+        'waterAbsorbanceColour': { value: new Vector3(1.0, 1.0, 0.2) },
     },
 
     vertexShader: /* glsl */`
@@ -39,12 +46,18 @@ const RefractShader = {
         uniform samplerCube interiorSampler;
         uniform samplerCube exteriorSampler;
 
-        uniform float refractiveIndexOutside;
-        uniform float refractiveIndexInside;
         uniform vec3 aabbExterior;
         uniform vec3 aabbInterior;
-        uniform float absorbanceCoefficient;
-        uniform vec3 absorbanceColour;
+        uniform float waterLevel;
+
+        uniform float refractiveIndexAir;
+        uniform float refractiveIndexGlass;
+        uniform float refractiveIndexWater;
+
+        uniform float glassAbsorbanceCoefficient;
+        uniform vec3 glassAbsorbanceColour;
+        uniform float waterAbsorbanceCoefficient;
+        uniform vec3 waterAbsorbanceColour;
 
         varying vec3 vObjectPosition;
         varying vec3 vObjectCameraPosition;
@@ -234,7 +247,8 @@ const RefractShader = {
             vec3 aabbExternalMax = aabbExterior * 0.5;
 
             // Sum of distance within the medium this ray travels.
-            float totalDistance = 0.0;
+            float distanceInGlass = 0.0;
+            float distanceInWater = 0.0;
 
             // Ray enters the mesh at A.
             vec3 aPosition = vObjectPosition.xyz;
@@ -246,7 +260,7 @@ const RefractShader = {
             vec3 aReflectDirection = vec3(0.0, 0.0, 0.0);
             float aReflectance = 0.0;
             castThroughInterface(aDirection, aNormal,
-                refractiveIndexOutside, refractiveIndexInside,
+                refractiveIndexAir, refractiveIndexGlass,
                 aReflectDirection, aRefractDirection, aReflectance
             );
 
@@ -270,47 +284,118 @@ const RefractShader = {
                 beforeDPosition = aPosition;
                 dIncomingDirection = aRefractDirection;
 
-            } else {
+            } else { // Ray enters interior volume.
 
                 vec3 bPosition = aPosition + aRefractDirection * bBoxIntersect;
-                totalDistance += bBoxIntersect;
+                distanceInGlass += max(0.0, bBoxIntersect);
 
                 // Find the normal of the interior at the point where the ray enters interior.
                 vec3 bNormal = sampleNormal(bPosition, interiorSampler).xyz;
 
-                // TODO: around here is where we'd start handling liquid filling.
+                // Find if the ray is entering water or air.
+                bool bIsBelowWater = bPosition.y <= waterLevel;
 
                 // Find how the ray gets split when entering interior space.
                 vec3 bRefractDirection = vec3(0.0, 0.0, 0.0);
                 vec3 bReflectDirection = vec3(0.0, 0.0, 0.0);
                 float bReflectance = 0.0;
                 castThroughInterface(aRefractDirection, bNormal,
-                    refractiveIndexInside, refractiveIndexOutside,
+                    refractiveIndexGlass, bIsBelowWater ? refractiveIndexWater : refractiveIndexAir,
                     bReflectDirection, bRefractDirection, bReflectance
                 );
 
                 if (bReflectance >= 0.999) {
 
-                    // Total internal reflection, so just follow reflection ray.
+                    // Total internal reflection, so follow reflection ray without entering interior.
                     beforeDPosition = bPosition;
                     dIncomingDirection = bReflectDirection;
 
-                } else {
+                } else { // Ray passes through interior volume.
 
-                    // Find where the ray leaves the interior AABB.
-                    float cDistance = 0.0;
+                    // Find when ray will go through water surface.
+
+                    float tWaterIntercept = (waterLevel - bPosition.y) / bRefractDirection.y;
+
+                    // Find where the uninterrupted ray would leave the interior AABB.
+                    float cUninterruptedLeave = 0.0;
                     aabbIntersection(bRefractDirection, bPosition,
                         aabbInternalMin, aabbInternalMax,
-                        cDistance
+                        cUninterruptedLeave
                     );
 
-                    // Don't add to totalDistance, as this is in the interior volume.
+                    vec3 cIncomingDirection;
+                    vec3 cPosition;
 
-                    vec3 cPosition = (cDistance >= -0.5)
-                        ? (bPosition + bRefractDirection * cDistance)
-                        : bPosition;
+                    if (tWaterIntercept > 0.0 && tWaterIntercept < cUninterruptedLeave) {
+                        // Ray hits the water's surface, at position w.
 
-                    // Find the normal of the interior at the point where the ray exits.
+                        vec3 wNormal = vec3(0.0, 1.0, 0.0);
+
+                        if (bIsBelowWater) {
+                            // b to w is under water.
+                            distanceInWater += max(0.0, tWaterIntercept);
+                            wNormal = -1.0 * wNormal;
+                        }
+
+                        vec3 wPosition = bPosition + bRefractDirection * tWaterIntercept;
+                        
+
+                        vec3 wRefractDirection = vec3(0.0, 0.0, 0.0);
+                        vec3 wReflectDirection = vec3(0.0, 0.0, 0.0);
+                        float wReflectance = 0.0;
+                        castThroughInterface(bRefractDirection, wNormal,
+                            bIsBelowWater ? refractiveIndexWater : refractiveIndexAir,
+                            bIsBelowWater ? refractiveIndexAir : refractiveIndexWater,
+                            wReflectDirection, wRefractDirection, wReflectance
+                        );
+
+                        if (wReflectance >= 0.999) {
+                            // Follow the reflection ray.
+                            float cFromW = 0.0;
+                            aabbIntersection(wReflectDirection, wPosition,
+                                aabbExternalMin, aabbExternalMax,
+                                cFromW
+                            );
+
+                            if (bIsBelowWater) {
+                                // Reflected off water surface, so w to c is still underwater.
+                                distanceInWater += max(0.0, cFromW);
+                            }
+                            cPosition = wPosition + wReflectDirection * cFromW;
+                            cIncomingDirection = wReflectDirection;
+                        } else {
+                            // Follow the refracted ray.
+                            float cFromW = 0.0;
+                            aabbIntersection(wRefractDirection, wPosition,
+                                aabbExternalMin, aabbExternalMax,
+                                cFromW
+                            );
+
+                            if (!bIsBelowWater) {
+                                // Passed down through water surface, so w to c is underwater.
+                                distanceInWater += max(0.0, cFromW);
+                            }
+                            cPosition = wPosition + wRefractDirection * cFromW;
+                            cIncomingDirection = wRefractDirection;
+                        }
+                    } else {
+                        // Ray leaves interior without hitting water's surface.
+
+                        if (bIsBelowWater) {
+                            distanceInWater += max(0.0, cUninterruptedLeave);
+
+                            // Red
+                            // gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                            // return;
+                        }
+
+                        cIncomingDirection = bRefractDirection;
+                        cPosition = bPosition + bRefractDirection * cUninterruptedLeave;
+                    }
+
+                    bool cIsBelowWater = cPosition.y <= waterLevel;
+
+                    // Find the normal of the interior at the point where the ray exits (point c).
                     vec3 cNormal = sampleNormal(cPosition, interiorSampler).xyz;
 
                     // Dump cNormal (useful for demo)
@@ -322,11 +407,11 @@ const RefractShader = {
                     vec3 cReflectDirection = vec3(0.0, 0.0, 0.0);
                     float cReflectance = 0.0;
                     castThroughInterface(bRefractDirection, cNormal * -1.0,
-                        refractiveIndexOutside, refractiveIndexInside,
+                        cIsBelowWater ? refractiveIndexWater : refractiveIndexAir, refractiveIndexGlass,
                         cReflectDirection, cRefractDirection, cReflectance
                     );
 
-                    // Ignoring reflection here. Going from air to glass so this'll be minor.
+                    // Ignoring reflection here. Going from water/air to glass so this'll be minor.
 
                     dIncomingDirection = cRefractDirection;
                     beforeDPosition = cPosition;
@@ -340,7 +425,7 @@ const RefractShader = {
                 dDistance
             );
 
-            totalDistance += max(0.0, dDistance);
+            distanceInGlass += max(0.0, dDistance);
             
             vec3 dPosition = (dDistance >= 0.0)
                 ? (beforeDPosition + dIncomingDirection * dDistance)
@@ -354,7 +439,7 @@ const RefractShader = {
             float dReflectance = 0.0;
 
             castThroughInterface(dIncomingDirection, dNormal * -1.0,
-                refractiveIndexInside, refractiveIndexOutside,
+                refractiveIndexGlass, refractiveIndexAir,
                 dReflectDirection, dRefractDirection, dReflectance
             );
 
@@ -370,7 +455,14 @@ const RefractShader = {
             interiorColour = max(
                 vec3(0.0, 0.0, 0.0),
                 interiorColour * exp(
-                    -1.0 * totalDistance * absorbanceCoefficient * absorbanceColour
+                    -1.0 * distanceInGlass * glassAbsorbanceCoefficient * glassAbsorbanceColour
+                )
+            );
+
+            interiorColour = max(
+                vec3(0.0, 0.0, 0.0),
+                interiorColour * exp(
+                    -1.0 * distanceInWater * waterAbsorbanceCoefficient * waterAbsorbanceColour
                 )
             );
 

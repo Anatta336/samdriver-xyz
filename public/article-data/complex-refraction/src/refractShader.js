@@ -50,16 +50,6 @@ const RefractShader = {
         varying vec3 vObjectCameraPosition;
         varying mat4 vModelMatrix;
 
-        // Will return (0,0,0) in case of total internal reflection.
-        vec3 applyRefraction(vec3 incoming, vec3 surfaceNormal, float indexA, float indexB) {
-            // In reality refractive index should never be less than 1, but just in case.
-            float ratio = abs(indexB) < 0.001
-                ? 1000.0
-                : indexA / indexB;
-
-            return refract(incoming, surfaceNormal, ratio);
-        }
-
         // approximation of the Fresnel equation for reflectance traveling from medium A to B.
         // based on https://graphics.stanford.edu/courses/cs148-10-summer/docs/2006--degreve--reflection_refraction.pdf
         float schlickApproximation(vec3 incoming, vec3 surfaceNormal, float indexA, float indexB) {
@@ -103,6 +93,97 @@ const RefractShader = {
 
         float min4(in float a, in float b, in float c, in float d) {
             return min(min(a, b), min(c, d));
+        }
+
+        // Solve quadratic equation ax^2 + bx + c = 0.
+        // x1 and x2 are the two solutions.
+        // hasRealSolution is true if there is a real solution.
+        void solveQuadratic(in float a, in float b, in float c,
+            out bool hasRealSolution, out float x1, out float x2
+        ) {
+            float s = sqrt(b * b - 4.0 * a * c);
+            hasRealSolution = s > 0.0 && a != 0.0;
+            x1 = (-b + s) / (2.0 * a);
+            x2 = (-b - s) / (2.0 * a);
+        }
+
+        // Intersect ray with a sphere.
+        void sphereIntersection(in vec3 rayDirection, in vec3 rayPosition,
+            in vec3 spherePosition, in float radius,
+            out float tIntersect
+        ) {
+            float a = dot(rayDirection, rayDirection);
+            float b = 2.0 * dot(rayDirection, rayPosition - spherePosition);
+            float c = dot(rayPosition - spherePosition, rayPosition - spherePosition)
+                - radius * radius;
+            
+            bool hasRealSolution;
+            float x1;
+            float x2;
+            solveQuadratic(a, b, c, hasRealSolution, x1, x2);
+
+            if (hasRealSolution) {
+                tIntersect = min(x1, x2);
+            } else {
+                tIntersect = -1.0;
+            }
+        }
+
+        // Intersect ray with the "rim" of a cylinder. *Does not* include end cap collision.
+        // If no intersection, tIntersect will be -1.0.
+        void aaCylinderRimIntersection(in vec3 rayDirection, in vec3 rayPosition,
+            in vec3 cylinderPosition, in float yMin, in float yMax, in float radius,
+            out float tIntersect
+        ) {
+            // Flatten ray direction and position to XZ plane.
+            float a = dot(rayDirection.xz, rayDirection.xz);
+            float b = 2.0 * dot(rayDirection.xz, rayPosition.xz - cylinderPosition.xz);
+            float c = dot(rayPosition.xz - cylinderPosition.xz, rayPosition.xz - cylinderPosition.xz)
+                - radius * radius;
+
+            bool hasRealSolution;
+            float x1, x2;
+            solveQuadratic(a, b, c, hasRealSolution, x1, x2);
+
+            if (!hasRealSolution) {
+                // Never intersects the cylinder.
+                tIntersect = -1.0;
+                return;
+            }
+            
+            // Check if the intersection is within the height bounds.
+            float y1 = rayPosition.y + x1 * rayDirection.y;
+            float y2 = rayPosition.y + x2 * rayDirection.y;
+
+            bool y1InBounds = y1 >= yMin && y1 <= yMax;
+            bool y2InBounds = y2 >= yMin && y2 <= yMax;
+
+            if (y1InBounds && y2InBounds) {
+                tIntersect = min(x1, x2);
+            } else if (y1InBounds) {
+                tIntersect = x1;
+            } else if (y2InBounds) {
+                tIntersect = x2;
+            } else {
+                tIntersect = -1.0;
+                return;
+            }
+        }
+
+        // If no intersection, normal value will be invalid.
+        void aaCylinderRimIntersectionPlusNormal(in vec3 rayDirection, in vec3 rayPosition,
+            in vec3 cylinderPosition, in float yMin, in float yMax, in float radius,
+            out float tIntersect, out vec3 normal
+        ) {
+            aaCylinderRimIntersection(rayDirection, rayPosition,
+                cylinderPosition, yMin, yMax, radius,
+                tIntersect
+            );
+
+            // Compute normal, which is always in the XZ plane.
+            vec3 intersectionPoint = rayPosition + tIntersect * rayDirection;
+            normal = vec3(0.0);
+            normal.xz = normalize(intersectionPoint.xz - cylinderPosition.xz);
         }
 
         // tIntersect -1.0 if no intersection, otherwise the distance along the ray to the intersection.
@@ -152,17 +233,19 @@ const RefractShader = {
             vec3 aabbExternalMin = aabbExterior * -0.5;
             vec3 aabbExternalMax = aabbExterior * 0.5;
 
+            // Sum of distance within the medium this ray travels.
             float totalDistance = 0.0;
 
             // Ray enters the mesh at A.
-            vec3 aNormal = sampleNormal(vObjectPosition.xyz, exteriorSampler).xyz;
             vec3 aPosition = vObjectPosition.xyz;
+            vec3 aDirection = normalize(aPosition - vObjectCameraPosition).xyz;
+            vec3 aNormal = sampleNormal(aPosition, exteriorSampler).xyz;
 
             // Handle interface at A.
             vec3 aRefractDirection = vec3(0.0, 0.0, 0.0);
             vec3 aReflectDirection = vec3(0.0, 0.0, 0.0);
             float aReflectance = 0.0;
-            castThroughInterface(normalize(aPosition - vObjectCameraPosition), aNormal,
+            castThroughInterface(aDirection, aNormal,
                 refractiveIndexOutside, refractiveIndexInside,
                 aReflectDirection, aRefractDirection, aReflectance
             );
@@ -171,28 +254,26 @@ const RefractShader = {
             vec3 aColourReflect = sampleEnvFromObjectDirection(aReflectDirection, vModelMatrix, environmentSampler);
 
             // aRefracted may enter interior volume, if so it's at B.
-            float bDistance = 0.0;
+            float bBoxIntersect = 0.0;
             aabbIntersection(aRefractDirection, aPosition,
                 aabbInternalMin, aabbInternalMax,
-                bDistance
+                bBoxIntersect
             );
-
-            totalDistance += max(0.0, bDistance);
-
-            vec3 bPosition = bDistance >= -0.5
-                ? aPosition + aRefractDirection * bDistance
-                : aPosition;
+            bool bHitBox = bBoxIntersect > -1.0;
 
             vec3 beforeDPosition = vec3(0.0, 0.0, 0.0);
             vec3 dIncomingDirection = vec3(0.0, 0.0, 0.0);
 
-            if (bDistance < -0.5) {
+            if (!bHitBox) {
 
                 // Ray doesn't enter interior volume, so skip to it leaving.
                 beforeDPosition = aPosition;
                 dIncomingDirection = aRefractDirection;
 
             } else {
+
+                vec3 bPosition = aPosition + aRefractDirection * bBoxIntersect;
+                totalDistance += bBoxIntersect;
 
                 // Find the normal of the interior at the point where the ray enters interior.
                 vec3 bNormal = sampleNormal(bPosition, interiorSampler).xyz;
@@ -285,11 +366,6 @@ const RefractShader = {
             vec3 exitReflection = sampleEnvFromObjectDirection(dReflectDirection, vModelMatrix, environmentSampler);
 
             vec3 interiorColour = mix(exitRefraction, exitReflection, dReflectance);
-
-            // Dump distance (useful for demo)
-            // totalDistance *= 8.0;
-            // gl_FragColor.rgba = vec4(totalDistance, totalDistance, totalDistance, 1.0);
-            // return;
 
             interiorColour = max(
                 vec3(0.0, 0.0, 0.0),

@@ -12,7 +12,8 @@ const RefractShader = {
 
         'aabbExterior': { value: new Vector3(0.07, 0.09, 0.03) },
         'aabbInterior': { value: new Vector3(0.06, 0.08, 0.02) },
-        'waterLevel': { value: 0.0 },
+        'waterPosition': { value: new Vector3(0.0, 0.0, 0.0) },
+        'waterNormal': { value: new Vector3(0.0, 1.0, 0.0) },
 
         'refractiveIndexAir': { value: 1.0 },
         'refractiveIndexGlass': { value: 1.5 },
@@ -26,9 +27,15 @@ const RefractShader = {
 
     vertexShader: /* glsl */`
 
+        uniform vec3 waterPosition;
+        uniform vec3 waterNormal;
+
         varying vec3 vObjectPosition;
         varying vec3 vObjectCameraPosition;
         varying mat4 vModelMatrix;
+        varying mat4 vModelMatrixInverse;
+        varying vec3 vWaterPosition;
+        varying vec3 vWaterNormal;
 
         void main() {
             vObjectPosition = position;
@@ -36,6 +43,10 @@ const RefractShader = {
             gl_Position = projectionMatrix * modelViewMatrix * vec4(vObjectPosition.xyz, 1.0);
 
             vObjectCameraPosition = (vec4(cameraPosition.xyz, 1.0) * modelMatrix).xyz;
+
+            mat4 modelMatrixInverse = inverse(modelMatrix);
+            vWaterPosition = (vec4(waterPosition.xyz, 1.0) * modelMatrix).xyz;
+            vWaterNormal = (vec4(waterNormal.xyz, 0.0) * modelMatrix).xyz;
 
             vModelMatrix = modelMatrix;
         }`,
@@ -48,7 +59,6 @@ const RefractShader = {
 
         uniform vec3 aabbExterior;
         uniform vec3 aabbInterior;
-        uniform float waterLevel;
 
         uniform float refractiveIndexAir;
         uniform float refractiveIndexGlass;
@@ -62,6 +72,9 @@ const RefractShader = {
         varying vec3 vObjectPosition;
         varying vec3 vObjectCameraPosition;
         varying mat4 vModelMatrix;
+        varying mat4 vModelMatrixInverse;
+        varying vec3 vWaterPosition;
+        varying vec3 vWaterNormal;
 
         // approximation of the Fresnel equation for reflectance traveling from medium A to B.
         // based on https://graphics.stanford.edu/courses/cs148-10-summer/docs/2006--degreve--reflection_refraction.pdf
@@ -118,6 +131,24 @@ const RefractShader = {
             hasRealSolution = s > 0.0 && a != 0.0;
             x1 = (-b + s) / (2.0 * a);
             x2 = (-b - s) / (2.0 * a);
+        }
+
+        void planeIntersection(in vec3 rayDirection, in vec3 rayPosition,
+            in vec3 planeNormal, in vec3 planePosition,
+            out float tIntersect
+        ) {
+            float denom = dot(planeNormal, rayDirection);
+            if (abs(denom) > 0.0001) {
+                tIntersect = dot(planePosition - rayPosition, planeNormal) / denom;
+            } else {
+                tIntersect = -1.0;
+            }
+        }
+
+        void isBelowPlane(in vec3 position, in vec3 planeNormal, in vec3 planePosition,
+            out bool isBelow
+        ) {
+            isBelow = dot(planeNormal, position - planePosition) < 0.0;
         }
 
         // Intersect ray with a sphere.
@@ -239,6 +270,19 @@ const RefractShader = {
             return normal;
         }
 
+        /*
+        Reference for positions:
+        - A. Where the ray enters the mesh.
+        - B. Ray enters the interior volume (may not exist.)
+        - W. Ray passes through the water surface within interior volume (may not exist.)
+        - C. Ray exits the interior volume (may not exist.)
+        - D. Ray leaves the mesh.
+
+        A is the only position where we sample both the reflection and refraction ray.
+        Everywhere else we just pick one to follow.
+
+        */
+
         void main() {
             vec3 aabbInternalMin = aabbInterior * -0.5;
             vec3 aabbInternalMax = aabbInterior * 0.5;
@@ -293,7 +337,8 @@ const RefractShader = {
                 vec3 bNormal = sampleNormal(bPosition, interiorSampler).xyz;
 
                 // Find if the ray is entering water or air.
-                bool bIsBelowWater = bPosition.y <= waterLevel;
+                bool bIsBelowWater;
+                isBelowPlane(bPosition, vWaterNormal, vWaterPosition, bIsBelowWater);
 
                 // Find how the ray gets split when entering interior space.
                 vec3 bRefractDirection = vec3(0.0, 0.0, 0.0);
@@ -313,8 +358,11 @@ const RefractShader = {
                 } else { // Ray passes through interior volume.
 
                     // Find when ray will go through water surface.
-
-                    float tWaterIntercept = (waterLevel - bPosition.y) / bRefractDirection.y;
+                    float tWaterIntercept;
+                    planeIntersection(bRefractDirection, bPosition,
+                        vWaterNormal, vWaterPosition,
+                        tWaterIntercept
+                    );
 
                     // Find where the uninterrupted ray would leave the interior AABB.
                     float cUninterruptedLeave = 0.0;
@@ -329,8 +377,7 @@ const RefractShader = {
                     if (tWaterIntercept > 0.0 && tWaterIntercept < cUninterruptedLeave) {
                         // Ray hits the water's surface, at position w.
 
-                        vec3 wNormal = vec3(0.0, 1.0, 0.0);
-
+                        vec3 wNormal = vWaterNormal;
                         if (bIsBelowWater) {
                             // b to w is under water.
                             distanceInWater += max(0.0, tWaterIntercept);
@@ -393,14 +440,11 @@ const RefractShader = {
                         cPosition = bPosition + bRefractDirection * cUninterruptedLeave;
                     }
 
-                    bool cIsBelowWater = cPosition.y <= waterLevel;
+                    bool cIsBelowWater;
+                    isBelowPlane(cPosition, vWaterNormal, vWaterPosition, cIsBelowWater);
 
                     // Find the normal of the interior at the point where the ray exits (point c).
                     vec3 cNormal = sampleNormal(cPosition, interiorSampler).xyz;
-
-                    // Dump cNormal (useful for demo)
-                    // gl_FragColor = vec4((cNormal + 1.0) * 0.5, 1.0);
-                    // return;
 
                     // Find how the ray gets split when leaving the interior space.
                     vec3 cRefractDirection = vec3(0.0, 0.0, 0.0);

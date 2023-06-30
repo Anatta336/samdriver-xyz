@@ -1,11 +1,7 @@
-
-
 export default () => {
     let hasActivePad = false;
     let activePadIndex = 0;
     let deadzone = 0.04;
-
-    console.log('adding gamepad listener');
 
     window.addEventListener('gamepadconnected', connectedEvent => {
         hasActivePad = true;

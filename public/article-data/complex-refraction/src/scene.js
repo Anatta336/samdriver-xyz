@@ -10,6 +10,7 @@ import {
     ShaderMaterial,
     Vector3,
     CubeTextureLoader,
+    Clock,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
@@ -38,10 +39,13 @@ export default (holderName) => {
     const material = {};
     const mesh = {};
     let hdri = null;
+    const clock = new Clock();
 
     let isTextureReady = false;
     let isGeometryReady = false;
     let isEnvironmentMapReady = false;
+
+    const perFrameCallbacks = [];
 
     createCamera();
     prepareRenderer();
@@ -49,15 +53,28 @@ export default (holderName) => {
     loadGeometry();
     loadEnvironmentMap();
 
+    return {
+        scene,
+        camera,
+        mesh,
+        addCallback,
+    };
+
     function perFrame() {
+        const dt = clock.getDelta();
+
         resizeToFit();
         cameraControl.update();
 
-        if (mesh.bottle) {
-            mesh.bottle.rotation.y += 0.002;
-        }
+        perFrameCallbacks.forEach(callback => {
+            callback(dt);
+        });
 
         composer.render();
+    }
+
+    function addCallback(callback) {
+        perFrameCallbacks.push(callback);
     }
 
     function resizeToFit(forceResize = false) {
@@ -218,4 +235,4 @@ export default (holderName) => {
         mesh.bottle = new Mesh(geometry.bottle, material.bottle);
         scene.add(mesh.bottle);
     }
-}
+};

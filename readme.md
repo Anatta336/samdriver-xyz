@@ -11,7 +11,7 @@ Add `127.0.0.1 netdev.samdriver.xyz` to your Windows hosts file.
 Access site at `http://netdev.samdriver.xyz/`
 
 ## Deploying
-Assuming you're me and have the appropriate RSA key.
+Assuming you're me, or have stolen the appropriate private key.
 ```
 rsync -e \"ssh\" -av --info=progress2 --delete --exclude=\".git\" --exclude=\"vendor\" ~/code/samdriver.xyz/ sdriver@new.samdriver.xyz:/home/sdriver/samdriver.xyz
 ```
@@ -25,9 +25,11 @@ for f in *.png; do cwebp -near_lossless 60 "$f" -o "${f%.png}.webp"; done
 ```
 
 ## Dependencies
-This project intentionally has no dependencies for the live version other than PHP itself.
+The base site project intentionally has no dependencies for the live version other than PHP itself.
 
 It does have development dependencies for automated tests. These are *not* required for the project to function, and do not need to be present on a live server.
+
+Some pages are built using various JavaScript tools. Look for a `readme.md` in their directory within `public/article-data`.
 
 ## Testing
 ```
@@ -42,6 +44,3 @@ Some articles use build tools to prepare JavaScript, for example `complex-refrac
 ## TODO
 - [ ] Auto-generate outline on side of articles.
 - [ ] Update Docker version to use Apache, to match server.
-- [ ] Refraction.
-- [ ] Try film grain pass.
-- [ ] Apply bloom pass to scenes in webGL lunch and learn.

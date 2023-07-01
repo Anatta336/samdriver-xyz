@@ -283,6 +283,125 @@ const RefractShader = {
 
         */
 
+        void handleInternalVolumeBtoC(in vec3 bPosition, in vec3 bIncomingDirection,
+            in vec3 aabbInternalMin, in vec3 aabbInternalMax,
+            inout float distanceInWater,
+            out vec3 beforeDPosition, out vec3 dIncomingDirection
+        ) {
+            // Find the normal of the interior at the point where the ray enters interior.
+            vec3 bNormal = sampleNormal(bPosition, interiorSampler).xyz;
+
+            // Find if the ray is entering water or air.
+            bool bIsBelowWater;
+            isBelowPlane(bPosition, vWaterNormal, vWaterPosition, bIsBelowWater);
+
+            // Find how the ray gets split when entering interior space.
+            vec3 bRefractDirection = vec3(0.0, 0.0, 0.0);
+            vec3 bReflectDirection = vec3(0.0, 0.0, 0.0);
+            float bReflectance = 0.0;
+            castThroughInterface(bIncomingDirection, bNormal,
+                refractiveIndexGlass, bIsBelowWater ? refractiveIndexWater : refractiveIndexAir,
+                bReflectDirection, bRefractDirection, bReflectance
+            );
+
+            if (bReflectance >= 0.999) {
+
+                // Total internal reflection, so follow reflection ray without entering interior.
+                beforeDPosition = bPosition;
+                dIncomingDirection = bReflectDirection;
+
+                return;
+            }
+
+            // Ray passes through interior volume.
+
+            // Find when ray will go through water surface.
+            float tWaterIntercept;
+            planeIntersection(bRefractDirection, bPosition,
+                vWaterNormal, vWaterPosition,
+                tWaterIntercept
+            );
+
+            // Find where the uninterrupted ray would leave the interior AABB.
+            float cUninterruptedLeave = 0.0;
+            aabbIntersection(bRefractDirection, bPosition,
+                aabbInternalMin, aabbInternalMax,
+                cUninterruptedLeave
+            );
+
+            vec3 cIncomingDirection;
+            vec3 cPosition;
+
+            if (tWaterIntercept > 0.0 && tWaterIntercept < cUninterruptedLeave) {
+                // Ray hits the water's surface, at position w.
+
+                vec3 wNormal = vWaterNormal;
+                if (bIsBelowWater) {
+                    // b to w is under water.
+                    distanceInWater += max(0.0, tWaterIntercept);
+                    wNormal = -1.0 * wNormal;
+                }
+
+                vec3 wPosition = bPosition + bRefractDirection * tWaterIntercept;
+
+                vec3 wRefractDirection = vec3(0.0, 0.0, 0.0);
+                vec3 wReflectDirection = vec3(0.0, 0.0, 0.0);
+                float wReflectance = 0.0;
+                castThroughInterface(bRefractDirection, wNormal,
+                    bIsBelowWater ? refractiveIndexWater : refractiveIndexAir,
+                    bIsBelowWater ? refractiveIndexAir : refractiveIndexWater,
+                    wReflectDirection, wRefractDirection, wReflectance
+                );
+
+                // Decide if we'll follow the reflection or refraction ray.
+                vec3 wExitDirection = (wReflectance >= 0.999) ? wReflectDirection : wRefractDirection;
+                bool wToCInWater = (wReflectance >= 0.999) ? bIsBelowWater : !bIsBelowWater;
+
+                float cFromW = 0.0;
+                aabbIntersection(wExitDirection, wPosition,
+                    aabbInternalMin, aabbInternalMax,
+                    cFromW
+                );
+
+                if (wToCInWater) {
+                    distanceInWater += max(0.0, cFromW);
+                }
+
+                cPosition = wPosition + wExitDirection * cFromW;
+                cIncomingDirection = wExitDirection;
+                
+            } else {
+                // Ray leaves interior without hitting water's surface.
+
+                if (bIsBelowWater) {
+                    distanceInWater += max(0.0, cUninterruptedLeave);
+                }
+
+                cIncomingDirection = bRefractDirection;
+                cPosition = bPosition + bRefractDirection * cUninterruptedLeave;
+            }
+
+            bool cIsBelowWater;
+            isBelowPlane(cPosition, vWaterNormal, vWaterPosition, cIsBelowWater);
+
+            // Find the normal of the interior at point c.
+            vec3 cNormal = sampleNormal(cPosition, interiorSampler).xyz;
+
+            // Find how the ray gets split when leaving the interior space.
+            vec3 cRefractDirection = vec3(0.0, 0.0, 0.0);
+            vec3 cReflectDirection = vec3(0.0, 0.0, 0.0);
+            float cReflectance = 0.0;
+            castThroughInterface(bRefractDirection, cNormal * -1.0,
+                cIsBelowWater ? refractiveIndexWater : refractiveIndexAir, refractiveIndexGlass,
+                cReflectDirection, cRefractDirection, cReflectance
+            );
+
+            // Just ignoring reflection here. Going from water/air to glass so this'll be minor.
+
+            dIncomingDirection = cRefractDirection;
+            beforeDPosition = cPosition;
+        }
+
         void main() {
             vec3 aabbInternalMin = aabbInterior * -0.5;
             vec3 aabbInternalMax = aabbInterior * 0.5;
@@ -333,133 +452,11 @@ const RefractShader = {
                 vec3 bPosition = aPosition + aRefractDirection * bBoxIntersect;
                 distanceInGlass += max(0.0, bBoxIntersect);
 
-                // Find the normal of the interior at the point where the ray enters interior.
-                vec3 bNormal = sampleNormal(bPosition, interiorSampler).xyz;
-
-                // Find if the ray is entering water or air.
-                bool bIsBelowWater;
-                isBelowPlane(bPosition, vWaterNormal, vWaterPosition, bIsBelowWater);
-
-                // Find how the ray gets split when entering interior space.
-                vec3 bRefractDirection = vec3(0.0, 0.0, 0.0);
-                vec3 bReflectDirection = vec3(0.0, 0.0, 0.0);
-                float bReflectance = 0.0;
-                castThroughInterface(aRefractDirection, bNormal,
-                    refractiveIndexGlass, bIsBelowWater ? refractiveIndexWater : refractiveIndexAir,
-                    bReflectDirection, bRefractDirection, bReflectance
+                handleInternalVolumeBtoC(bPosition, aRefractDirection,
+                    aabbInternalMin, aabbInternalMax,
+                    distanceInWater,
+                    beforeDPosition, dIncomingDirection
                 );
-
-                if (bReflectance >= 0.999) {
-
-                    // Total internal reflection, so follow reflection ray without entering interior.
-                    beforeDPosition = bPosition;
-                    dIncomingDirection = bReflectDirection;
-
-                } else { // Ray passes through interior volume.
-
-                    // Find when ray will go through water surface.
-                    float tWaterIntercept;
-                    planeIntersection(bRefractDirection, bPosition,
-                        vWaterNormal, vWaterPosition,
-                        tWaterIntercept
-                    );
-
-                    // Find where the uninterrupted ray would leave the interior AABB.
-                    float cUninterruptedLeave = 0.0;
-                    aabbIntersection(bRefractDirection, bPosition,
-                        aabbInternalMin, aabbInternalMax,
-                        cUninterruptedLeave
-                    );
-
-                    vec3 cIncomingDirection;
-                    vec3 cPosition;
-
-                    if (tWaterIntercept > 0.0 && tWaterIntercept < cUninterruptedLeave) {
-                        // Ray hits the water's surface, at position w.
-
-                        vec3 wNormal = vWaterNormal;
-                        if (bIsBelowWater) {
-                            // b to w is under water.
-                            distanceInWater += max(0.0, tWaterIntercept);
-                            wNormal = -1.0 * wNormal;
-                        }
-
-                        vec3 wPosition = bPosition + bRefractDirection * tWaterIntercept;
-                        
-
-                        vec3 wRefractDirection = vec3(0.0, 0.0, 0.0);
-                        vec3 wReflectDirection = vec3(0.0, 0.0, 0.0);
-                        float wReflectance = 0.0;
-                        castThroughInterface(bRefractDirection, wNormal,
-                            bIsBelowWater ? refractiveIndexWater : refractiveIndexAir,
-                            bIsBelowWater ? refractiveIndexAir : refractiveIndexWater,
-                            wReflectDirection, wRefractDirection, wReflectance
-                        );
-
-                        if (wReflectance >= 0.999) {
-                            // Follow the reflection ray.
-                            float cFromW = 0.0;
-                            aabbIntersection(wReflectDirection, wPosition,
-                                aabbExternalMin, aabbExternalMax,
-                                cFromW
-                            );
-
-                            if (bIsBelowWater) {
-                                // Reflected off water surface, so w to c is still underwater.
-                                distanceInWater += max(0.0, cFromW);
-                            }
-                            cPosition = wPosition + wReflectDirection * cFromW;
-                            cIncomingDirection = wReflectDirection;
-                        } else {
-                            // Follow the refracted ray.
-                            float cFromW = 0.0;
-                            aabbIntersection(wRefractDirection, wPosition,
-                                aabbExternalMin, aabbExternalMax,
-                                cFromW
-                            );
-
-                            if (!bIsBelowWater) {
-                                // Passed down through water surface, so w to c is underwater.
-                                distanceInWater += max(0.0, cFromW);
-                            }
-                            cPosition = wPosition + wRefractDirection * cFromW;
-                            cIncomingDirection = wRefractDirection;
-                        }
-                    } else {
-                        // Ray leaves interior without hitting water's surface.
-
-                        if (bIsBelowWater) {
-                            distanceInWater += max(0.0, cUninterruptedLeave);
-
-                            // Red
-                            // gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-                            // return;
-                        }
-
-                        cIncomingDirection = bRefractDirection;
-                        cPosition = bPosition + bRefractDirection * cUninterruptedLeave;
-                    }
-
-                    bool cIsBelowWater;
-                    isBelowPlane(cPosition, vWaterNormal, vWaterPosition, cIsBelowWater);
-
-                    // Find the normal of the interior at the point where the ray exits (point c).
-                    vec3 cNormal = sampleNormal(cPosition, interiorSampler).xyz;
-
-                    // Find how the ray gets split when leaving the interior space.
-                    vec3 cRefractDirection = vec3(0.0, 0.0, 0.0);
-                    vec3 cReflectDirection = vec3(0.0, 0.0, 0.0);
-                    float cReflectance = 0.0;
-                    castThroughInterface(bRefractDirection, cNormal * -1.0,
-                        cIsBelowWater ? refractiveIndexWater : refractiveIndexAir, refractiveIndexGlass,
-                        cReflectDirection, cRefractDirection, cReflectance
-                    );
-
-                    // Ignoring reflection here. Going from water/air to glass so this'll be minor.
-
-                    dIncomingDirection = cRefractDirection;
-                    beforeDPosition = cPosition;
-                }
             }
 
             // Find where the ray exits the mesh.

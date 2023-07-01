@@ -9,12 +9,14 @@ export default () => {
     window.addEventListener('keydown', keydownEvent => {
         if (keydownEvent.code in isDown) {
             isDown[keydownEvent.code] = true;
+            keydownEvent.preventDefault();
         }
     });
 
     window.addEventListener('keyup', keyupEvent => {
         if (keyupEvent.code in isDown) {
             isDown[keyupEvent.code] = false;
+            keyupEvent.preventDefault();
         }
     });
 

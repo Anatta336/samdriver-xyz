@@ -283,6 +283,61 @@ const RefractShader = {
 
         */
 
+        void handleWaterSurfaceBtoW(
+            in bool bIsBelowWater, in vec3 bPosition, in vec3 bExitDirection,
+            in float tWaterIntercept, in float tLeaveInterior,
+            in vec3 aabbInternalMin, in vec3 aabbInternalMax,
+            inout float distanceInWater,
+            out vec3 cIncomingDirection, out vec3 cPosition
+        ) {
+            if (tWaterIntercept <= 0.0 || tWaterIntercept > tLeaveInterior) {
+                // Ray leaves interior without hitting water surface.
+                if (bIsBelowWater) {
+                    distanceInWater += max(0.0, tLeaveInterior);
+                }
+
+                cIncomingDirection = bExitDirection;
+                cPosition = bPosition + bExitDirection * tLeaveInterior;
+
+                return;
+            }
+
+            vec3 wNormal = vWaterNormal;
+            if (bIsBelowWater) {
+                // b to w is under water.
+                distanceInWater += max(0.0, tWaterIntercept);
+                wNormal = -1.0 * wNormal;
+            }
+
+            vec3 wPosition = bPosition + bExitDirection * tWaterIntercept;
+
+            vec3 wRefractDirection = vec3(0.0, 0.0, 0.0);
+            vec3 wReflectDirection = vec3(0.0, 0.0, 0.0);
+            float wReflectance = 0.0;
+            castThroughInterface(bExitDirection, wNormal,
+                bIsBelowWater ? refractiveIndexWater : refractiveIndexAir,
+                bIsBelowWater ? refractiveIndexAir : refractiveIndexWater,
+                wReflectDirection, wRefractDirection, wReflectance
+            );
+
+            // Decide if we'll follow the reflection or refraction ray.
+            vec3 wExitDirection = (wReflectance >= 0.999) ? wReflectDirection : wRefractDirection;
+            bool wToCInWater = (wReflectance >= 0.999) ? bIsBelowWater : !bIsBelowWater;
+
+            float cFromW = 0.0;
+            aabbIntersection(wExitDirection, wPosition,
+                aabbInternalMin, aabbInternalMax,
+                cFromW
+            );
+
+            if (wToCInWater) {
+                distanceInWater += max(0.0, cFromW);
+            }
+
+            cPosition = wPosition + wExitDirection * cFromW;
+            cIncomingDirection = wExitDirection;
+        }
+
         void handleInternalVolumeBtoC(in vec3 bPosition, in vec3 bIncomingDirection,
             in vec3 aabbInternalMin, in vec3 aabbInternalMax,
             inout float distanceInWater,
@@ -332,54 +387,13 @@ const RefractShader = {
             vec3 cIncomingDirection;
             vec3 cPosition;
 
-            if (tWaterIntercept > 0.0 && tWaterIntercept < cUninterruptedLeave) {
-                // Ray hits the water's surface, at position w.
-
-                vec3 wNormal = vWaterNormal;
-                if (bIsBelowWater) {
-                    // b to w is under water.
-                    distanceInWater += max(0.0, tWaterIntercept);
-                    wNormal = -1.0 * wNormal;
-                }
-
-                vec3 wPosition = bPosition + bRefractDirection * tWaterIntercept;
-
-                vec3 wRefractDirection = vec3(0.0, 0.0, 0.0);
-                vec3 wReflectDirection = vec3(0.0, 0.0, 0.0);
-                float wReflectance = 0.0;
-                castThroughInterface(bRefractDirection, wNormal,
-                    bIsBelowWater ? refractiveIndexWater : refractiveIndexAir,
-                    bIsBelowWater ? refractiveIndexAir : refractiveIndexWater,
-                    wReflectDirection, wRefractDirection, wReflectance
-                );
-
-                // Decide if we'll follow the reflection or refraction ray.
-                vec3 wExitDirection = (wReflectance >= 0.999) ? wReflectDirection : wRefractDirection;
-                bool wToCInWater = (wReflectance >= 0.999) ? bIsBelowWater : !bIsBelowWater;
-
-                float cFromW = 0.0;
-                aabbIntersection(wExitDirection, wPosition,
-                    aabbInternalMin, aabbInternalMax,
-                    cFromW
-                );
-
-                if (wToCInWater) {
-                    distanceInWater += max(0.0, cFromW);
-                }
-
-                cPosition = wPosition + wExitDirection * cFromW;
-                cIncomingDirection = wExitDirection;
-                
-            } else {
-                // Ray leaves interior without hitting water's surface.
-
-                if (bIsBelowWater) {
-                    distanceInWater += max(0.0, cUninterruptedLeave);
-                }
-
-                cIncomingDirection = bRefractDirection;
-                cPosition = bPosition + bRefractDirection * cUninterruptedLeave;
-            }
+            handleWaterSurfaceBtoW(
+                bIsBelowWater, bPosition, bRefractDirection,
+                tWaterIntercept, cUninterruptedLeave,
+                aabbInternalMin, aabbInternalMax,
+                distanceInWater,
+                cIncomingDirection, cPosition
+            );
 
             bool cIsBelowWater;
             isBelowPlane(cPosition, vWaterNormal, vWaterPosition, cIsBelowWater);

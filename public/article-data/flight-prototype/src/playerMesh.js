@@ -6,7 +6,6 @@ import { BoxGeometry,
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 export default () => {
-    /// Mesh
     let mesh = null;
 
     prepareMesh();
@@ -15,6 +14,7 @@ export default () => {
         mesh,
         setPosition,
         getPosition,
+        // Rather than implementing a bunch of setRotation, etc., just use mesh directly.
     };
 
     function prepareMesh() {

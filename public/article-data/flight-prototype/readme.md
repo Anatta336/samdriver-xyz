@@ -14,7 +14,7 @@ docker-compose run --rm npm run watch
 ## TODO
 - [x] Render land plane
 - [x] Render player box
-- [ ] Rotate box from input
+- [x] Rotate box from input
 - [ ] Move with no physics
 - [ ] Basic camera control
 - [ ] Simplest flight physics

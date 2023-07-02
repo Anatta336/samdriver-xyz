@@ -141,7 +141,7 @@ export default (holderElement, cameraObject) => {
     
         const bloomPass = new UnrealBloomPass(
             new Vector2(holderElement.clientWidth, holderElement.clientHeight),
-            7.00, // strength
+            4.00, // strength
             0.80, // radius
             0.99, // threshold
         );

@@ -15,8 +15,8 @@ docker-compose run --rm npm run watch
 - [x] Render land plane
 - [x] Render player box
 - [x] Rotate box from input
-- [ ] Move with no physics
-- [ ] Basic camera control
+- [x] Move with no physics
+- [ ] 1st pass camera control
 - [ ] Simplest flight physics
 - [ ] Display absolute speed and altitude
 - [ ] Button to cheat for height when testing

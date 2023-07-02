@@ -13,17 +13,19 @@ const landMeshWrapper = createLandMesh();
 const playerMeshWrapper = createPlayerMesh();
 
 const input = createInput();
-const player = createPlayer(playerMeshWrapper.mesh, input, new Vector3(0, 40, 0));
+const player = createPlayer(playerMeshWrapper.mesh, input, new Vector3(0, 50, 0));
+const chaseRelativeOffset = new Vector3(0, 0, -5.0);
+const chaseAbsoluteOffset = new Vector3(0, 2.0, 0);
 
 scene.addMesh(playerMeshWrapper.mesh);
 scene.addMesh(landMeshWrapper.mesh);
-
-camera.pointAt(player.position);
-camera.setPosition(player.position.clone().add(new Vector3(0, 0, -3)));
 
 scene.addPerFrame(update);
 
 function update(dt) {
     player.update(dt);
+
+    camera.setPosition(player.getRelativePosition(chaseRelativeOffset).add(chaseAbsoluteOffset));
+    camera.pointAt(player.position);
     camera.update(dt);
 }

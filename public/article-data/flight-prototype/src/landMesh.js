@@ -17,8 +17,15 @@ export default () => {
             roughness: 0.9,
         });
     
-        const geometry = new PlaneGeometry(1000, 1000)
+        const geometry = new PlaneGeometry(1000, 1000, 100, 100)
         geometry.rotateX(-Math.PI / 2);
+
+        const vertices = geometry.attributes.position.array;
+        for (let i = 1; i < vertices.length; i += 3) {
+            vertices[i] = (Math.random() - 0.5) * 20;
+        }
+
+        geometry.computeVertexNormals();
     
         mesh = new Mesh(geometry, material);
     }

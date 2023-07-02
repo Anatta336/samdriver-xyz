@@ -9,6 +9,7 @@ export default (
     const velocity = new Vector3();
     const acceleration = new Vector3();
     const rotation = new Quaternion();
+    let speed = 40.0;
 
     let rollInputFactor = 5.0;
     let pitchInputFactor = -4.0;
@@ -18,10 +19,12 @@ export default (
         position,
         rotation,
         update,
+        getRelativePosition,
     };
 
     function update(dt) {
         updateFromInput(dt);
+        updatePosition(dt);
         updateMesh();
     }
 
@@ -42,8 +45,20 @@ export default (
         rotation.multiply(rollChange);
     }
 
+    function updatePosition(dt) {
+        // Just move forward at constant speed.
+        const forward = new Vector3(0, 0, speed * dt);
+        forward.applyQuaternion(rotation);
+
+        position.add(forward);
+    }
+
     function updateMesh() {
         mesh.position.copy(position);
         mesh.quaternion.copy(rotation);
+    }
+
+    function getRelativePosition(offset = new Vector3(0, 0, -10)) {
+        return position.clone().add(offset.clone().applyQuaternion(rotation));
     }
 };

@@ -29,7 +29,7 @@ export default (holderElement,
         cameraControl.minDistance = maxDistance;
     
         cameraControl.target.set(0, 0, 0);
-        camera.position.set(0, 1.0, -3.0);
+        camera.position.set(0, 5.0, -3.0);
         cameraControl.update();
     }
 

@@ -4,7 +4,9 @@ Simple article site without a database.
 ## Running locally
 Assuming a Windows machine using WSL and Docker.
 
-`docker-compose up -d`
+```sh
+docker-compose up -d
+```
 
 Add `127.0.0.1 netdev.samdriver.xyz` to your Windows hosts file.
 
@@ -12,15 +14,14 @@ Access site at `http://netdev.samdriver.xyz/`
 
 ## Deploying
 Assuming you're me, or have stolen the appropriate private key.
+```sh
+. ./deploy.sh
 ```
-rsync -e \"ssh\" -av --info=progress2 --delete --exclude=\".git\" --exclude=\"vendor\" ~/code/samdriver.xyz/ sdriver@new.samdriver.xyz:/home/sdriver/samdriver.xyz
-```
-
-Or if using VS Code, run the `sync-live` task.
 
 ## Converting Images
 Convert images to `webp` when possible. This will work well in the majority of cases. Consider switching `-near_lossless 60` for `-q 80` (or similar) if dealing with photos. If images have important colour information encoded along with alpha (e.g. a 4 channel texture) add the `-exact` option.
-```
+
+```sh
 for f in *.png; do cwebp -near_lossless 60 "$f" -o "${f%.png}.webp"; done
 ```
 
@@ -32,7 +33,7 @@ It does have development dependencies for automated tests. These are *not* requi
 Some pages are built using various JavaScript tools. Look for a `readme.md` in their directory within `public/article-data`.
 
 ## Testing
-```
+```sh
 docker-compose run --rm phpunit tests/
 ```
 

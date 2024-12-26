@@ -1,6 +1,8 @@
 # Flight Prototype
 
 ## Building
+Best way to run is start up the whole netdev.samdriver.xyz site locally.
+
 ### First-time install
 ```
 docker-compose run --rm npm install
@@ -37,7 +39,23 @@ console.log(store.getValue());
 ```
 
 ## TODO
-- [ ]
+- Box sliding around
+- IK of a limb
+- Box stepping around
+- Gun shooting
+- Enemy existing
+- Enemy vs bullet detection
+- Enemy vs player detection
+- Enemy movement
+- Some kind of level geometry
+- Pathfinding
+
 
 ## Ideas
+- Shop as web page to show 3D in a traditional setting
+- Water puddles on map to have waves.
+- "Simple" procedural stepping animation. Needs IK presumably?
+- Djikstra map pathfinding for enemies, with some spread effect built in to it?
+    - Each enemy overlaying a negative weighting to nearby cells.
+
 

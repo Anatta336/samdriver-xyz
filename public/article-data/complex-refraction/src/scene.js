@@ -29,9 +29,25 @@ export default (holderName) => {
     }
 
     const scene = new Scene();
+
+    /**
+     * @type {PerspectiveCamera}
+     */
     let camera = null;
+
+    /**
+     * @type {OrbitControls}
+     */
     let cameraControl = null;
+
+    /**
+     * @type {WebGLRenderer}
+     */
     let renderer = null;
+
+    /**
+     * @type {EffectComposer}
+     */
     let composer = null;
 
     const geometry = {};
@@ -80,24 +96,24 @@ export default (holderName) => {
     function resizeToFit(forceResize = false) {
         const width = holderElement.clientWidth;
         const height = holderElement.clientHeight;
-    
+
         const needsResize = forceResize
             || renderer.domElement.width !== width
             || renderer.domElement.height !== height;
-    
+
         if (!needsResize) {
             return;
         }
-    
+
         renderer.setSize(width, height, false);
         renderer.setPixelRatio(window.devicePixelRatio);
-    
+
         camera.aspect = getHolderAspectRatio();
         camera.updateProjectionMatrix();
     }
 
     function prepareRenderer() {
-        renderer = new WebGLRenderer({ 
+        renderer = new WebGLRenderer({
             antialias: true,
             alpha: true,
             premultipliedAlpha: false,
@@ -105,31 +121,31 @@ export default (holderName) => {
         });
         renderer.alpha = true;
         renderer.setClearColor(0x000000, 0);
-    
+
         renderer.setSize(holderElement.clientWidth, holderElement.clientHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
-    
+
         // Linear space for good bloom and tonemapping results.
         renderer.outputColorSpace = LinearSRGBColorSpace;
         renderer.toneMapping = ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.1;
-    
+
         const renderPass = new RenderPass(scene, camera);
-    
+
         const bloomPass = new UnrealBloomPass(
             new Vector2(holderElement.clientWidth, holderElement.clientHeight),
             2.00, // strength
             0.80, // radius
             0.99, // threshold
         );
-    
+
         const noisePass = new FilmNoisePass(0.04);
-    
+
         composer = new EffectComposer(renderer);
         composer.addPass(renderPass);
         composer.addPass(bloomPass);
         composer.addPass(noisePass);
-    
+
         // Add canvas to DOM.
         holderElement.appendChild(renderer.domElement);
 
@@ -196,7 +212,7 @@ export default (holderName) => {
         .then((texture) => {
             texture.mapping = EquirectangularReflectionMapping;
             hdri = texture;
-            
+
             scene.environment = hdri;
             scene.background = hdri;
             scene.backgroundIntensity = 0.8;

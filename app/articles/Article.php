@@ -4,14 +4,16 @@ namespace App\Articles;
 
 use DateTimeImmutable;
 use DOMDocument;
+use DOMXPath;
 
 class Article
 {
-    protected string $slug;
-    protected string $name;
-    protected string $description;
-    protected string $sort;
-    protected string $path = '';
+    private ?string $slug = null;
+    private ?DOMDocument $document = null;
+    private ?string $name = null;
+    private ?string $description = null;
+    private ?string $sort = null;
+    private ?string $path = null;
 
     public static function fromSlug(string $slug, string $dataPath): Article|null
     {
@@ -20,6 +22,10 @@ class Article
         if (!$article->exists()) {
             return null;
         }
+
+        // if (!$article->isAvailableToPublic()) {
+        //     return null;
+        // }
 
         return $article;
     }
@@ -48,7 +54,7 @@ class Article
 
     public function getName(): string
     {
-        if (!isset($this->name)) {
+        if (empty($this->name)) {
             $this->loadSummary();
         }
 
@@ -57,7 +63,7 @@ class Article
 
     public function getDescription(): string
     {
-        if (!isset($this->description)) {
+        if (empty($this->description)) {
             $this->loadSummary();
         }
 
@@ -66,7 +72,7 @@ class Article
 
     public function getSort(): string
     {
-        if (!isset($this->sort)) {
+        if (empty($this->sort)) {
             $this->loadSummary();
         }
 
@@ -78,22 +84,24 @@ class Article
      */
     public function getContent(): string
     {
-        $document = $this->getDocument();
+        if (!$this->document) {
+            $this->document = $this->getDocument();
+        }
 
-        if (!$document) {
+        if (!$this->document) {
             // Unable to find and/or load file.
             return '';
         }
 
         /** @var \DomElement|null $articleElement */
-        $articleElement = $document->getElementsByTagName('article')->item(0);
+        $articleElement = $this->document->getElementsByTagName('article')->item(0);
 
         if (!$articleElement) {
             // Missing essential content.
             return '';
         }
 
-        $html = $document->saveHTML($articleElement);
+        $html = $this->document->saveHTML($articleElement);
 
         if ($html === false) {
             return '';
@@ -110,17 +118,41 @@ class Article
         return DateTimeImmutable::createFromFormat('U', filemtime($this->path));
     }
 
-    protected function loadSummary(): void
+    public function isAvailableToPublic(): bool
     {
-        $document = $this->getDocument();
+        if (!$this->document) {
+            $this->document = $this->getDocument();
+        }
 
-        if (!$document) {
+        if (!$this->document) {
+            // Unable to find and/or load file.
+            return false;
+        }
+
+        $xpath = new DOMXPath($this->document);
+        $metaPublic = $xpath->query('//meta[@name="public"]')->item(0);
+
+        if ($metaPublic && $metaPublic->getAttribute('content') === 'false') {
+            // Marked as not public.
+            return false;
+        }
+
+        return true;
+    }
+
+    private function loadSummary(): void
+    {
+        if (!$this->document) {
+            $this->document = $this->getDocument();
+        }
+
+        if (!$this->document) {
             // Unable to find and/or load file.
             return;
         }
 
         /** @var \DomElement|null */
-        $headElement = $document->getElementsByTagName('head')->item(0);
+        $headElement = $this->document->getElementsByTagName('head')->item(0);
 
         if (!$headElement) {
             // Missing essential content.
@@ -132,6 +164,8 @@ class Article
 
         // Look through the meta elements for the description and sort value.
         $metaElements = $headElement->getElementsByTagName('meta');
+
+        /** @var DOMNode $metaElement */
         foreach ($metaElements as $metaElement) {
             if ($metaElement->getAttribute('name') === 'description') {
                 $this->description = $metaElement->getAttribute('content');
@@ -145,13 +179,12 @@ class Article
         }
     }
 
-    protected function getDocument(): ?DOMDocument
+    private function getDocument(): ?DOMDocument
     {
         $document = new DOMDocument('5.0', 'utf-8');
 
         // Suppress warnings about "invalid" HTML (it doesn't know about HTML5).
         @$wasLoaded = $document->loadHTMLFile($this->path);
-
         if (!$wasLoaded) {
             return null;
         }

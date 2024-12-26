@@ -2,14 +2,17 @@
 
 namespace App\Articles;
 
+use DOMDocument;
+use DOMXPath;
+
 class ArticleList
 {
     const DATA_PATH = 'article-data/';
 
-    protected array $slugs;
-    protected array $articles;
+    private array $slugs;
+    private array $articles;
 
-    protected string $dataPath;
+    private string $dataPath;
 
     public function __construct()
     {
@@ -62,22 +65,55 @@ class ArticleList
     /**
      * @return array<string> Array of slugs, e.g. 'refraction-sphere'.
      */
-    protected function getSlugs(): array
+    private function getSlugs(): array
     {
         if (isset($this->slugs)) {
             return $this->slugs;
         }
 
         $directories = new \DirectoryIterator($this->dataPath);
-
         $this->slugs = [];
 
         foreach ($directories as $directory) {
-            if ($directory->isDir() && !$directory->isDot()) {
-                $this->slugs[] = $directory->getFilename();
+            if (!$this->isDirectoryValidArticle($directory)) {
+                continue;
             }
+
+            $this->slugs[] = $directory->getFilename();
         }
 
         return $this->slugs;
+    }
+
+    private function isDirectoryValidArticle(\DirectoryIterator $directory): bool
+    {
+        if (!$directory->isDir() || $directory->isDot()) {
+            // Not a directory at all.
+            return false;
+        }
+
+        $directoryPath = $directory->getPathname();
+        $indexPath = $directoryPath.'/index.html';
+
+        if (!file_exists($indexPath)) {
+            // No index.html.
+            return false;
+        }
+
+        $htmlContent = file_get_contents($indexPath);
+
+        $document = new DOMDocument();
+        // Suppress warnings from potentially malformed HTML
+        @$document->loadHTML($htmlContent, LIBXML_NOERROR);
+
+        $xpath = new DOMXPath($document);
+        $metaPublic = $xpath->query('//meta[@name="public"]')->item(0);
+
+        if ($metaPublic && $metaPublic->getAttribute('content') === 'false') {
+            // Marked as not public.
+            return false;
+        }
+
+        return true;
     }
 }

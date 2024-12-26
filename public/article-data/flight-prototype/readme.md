@@ -11,13 +11,38 @@ docker-compose run --rm npm install
 docker-compose run --rm npm run watch
 ```
 
+## Code Style
+Makes heavy use of the "module pattern", for example:
+
+```javascript
+// store.js
+export default () => {
+    let somethingPrivate = 123;
+
+    return {
+        getValue,
+    };
+
+    function getValue() {
+        return somethingPrivate * 2;
+    }
+}
+```
+
+```javascript
+import createStore from './store.js';
+
+const store = createStore();
+console.log(store.getValue());
+```
+
 ## TODO
 - [x] Render land plane
 - [x] Render player box
 - [x] Rotate box from input
 - [x] Move with no physics
-- [ ] 1st pass camera control
 - [ ] Simplest flight physics
+- [ ] 1st pass camera control
 - [ ] Display absolute speed and altitude
 - [ ] Button to cheat for height when testing
 - [ ] Wind

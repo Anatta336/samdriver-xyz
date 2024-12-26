@@ -4,11 +4,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "sync-live",
-            "type": "shell",
-            "command": "rsync -e \"ssh\" -av --info=progress2 --delete -F -F ~/code/samdriver.xyz/ sdriver@new.samdriver.xyz:/home/sdriver/samdriver.xyz"
-        },
-        {
             "label": "autoload",
             "type": "shell",
             "command": "docker-compose run --rm composer dump-autoload",

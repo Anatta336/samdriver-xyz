@@ -104,23 +104,23 @@ export default (holderElement, cameraObject) => {
     function resizeToFit(forceResize = false) {
         const width = holderElement.clientWidth;
         const height = holderElement.clientHeight;
-    
+
         const needsResize = forceResize
             || renderer.domElement.width !== width
             || renderer.domElement.height !== height;
-    
+
         if (!needsResize) {
             return;
         }
-    
+
         renderer.setSize(width, height, false);
         renderer.setPixelRatio(window.devicePixelRatio);
-    
+
         cameraObject.setAspectRatio(getHolderAspectRatio());
     }
 
     function prepareRenderer() {
-        renderer = new WebGLRenderer({ 
+        renderer = new WebGLRenderer({
             antialias: true,
             alpha: true,
             premultipliedAlpha: false,
@@ -128,31 +128,31 @@ export default (holderElement, cameraObject) => {
         });
         renderer.alpha = true;
         renderer.setClearColor(0x000000, 0);
-    
+
         renderer.setSize(holderElement.clientWidth, holderElement.clientHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
-    
+
         // Linear space for good bloom and tonemapping results.
         renderer.outputColorSpace = LinearSRGBColorSpace;
         renderer.toneMapping = ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.1;
-    
+
         const renderPass = new RenderPass(scene, cameraObject.camera);
-    
+
         const bloomPass = new UnrealBloomPass(
             new Vector2(holderElement.clientWidth, holderElement.clientHeight),
             4.00, // strength
             0.80, // radius
             0.99, // threshold
         );
-    
+
         const noisePass = new FilmNoisePass(0.00);
-    
+
         composer = new EffectComposer(renderer);
         composer.addPass(renderPass);
         composer.addPass(bloomPass);
         composer.addPass(noisePass);
-    
+
         // Add canvas to DOM.
         holderElement.appendChild(renderer.domElement);
 
@@ -165,7 +165,7 @@ export default (holderElement, cameraObject) => {
     }
 
     function loadEnvironmentMap() {
-        new RGBELoader().setPath('/article-data/flight-prototype/').loadAsync('fouriesburg_mountain_midday_1k.hdr')
+        new RGBELoader().setPath('/article-data/flight-prototype/assets/').loadAsync('fouriesburg_mountain_midday_1k.hdr')
         .then((texture) => {
             texture.mapping = EquirectangularReflectionMapping;
             hdri = texture;

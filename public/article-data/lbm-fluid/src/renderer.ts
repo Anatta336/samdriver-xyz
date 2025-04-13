@@ -267,5 +267,4 @@ export default class Renderer {
         // Submit commands
         this.queue.submit([commandEncoder.finish()]);
     };
-
 }

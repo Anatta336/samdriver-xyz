@@ -2,144 +2,136 @@ import Renderer from "../renderer";
 import Pipeline from "../webgpu/pipeline";
 import shaderCode from "./combine.wgsl?raw";
 
-export default class PaintPipeline implements Pipeline {
-    #renderer: Renderer;
+export interface DrawsCircles {
+    drawCircle(x: number, y: number, radius: number, value: number): void;
+}
 
-    #simParamsBuffer: GPUBuffer;
-    #valuesBuffer: GPUBuffer;
-    #userInputBuffer: GPUBuffer;
-
-    #bindGroupLayout: GPUBindGroupLayout;
-    #bindGroup: GPUBindGroup;
-    #shaderModule: GPUShaderModule;
-    #pipeline: GPUComputePipeline;
-
-    constructor(
-        renderer: Renderer,
-        simParamsBuffer: GPUBuffer,
-        valuesBuffer: GPUBuffer,
-    ) {
-        this.#renderer = renderer;
-        this.#simParamsBuffer = simParamsBuffer;
-        this.#valuesBuffer = valuesBuffer;
-
-        if (!renderer.device) {
-            throw new Error("Trying to construct AddPipeline when Renderer doesn't have device yet.");
-        }
-
-        const device = renderer.device;
-
-        this.#userInputBuffer = device.createBuffer({
-            size: this.#renderer.resolutionX * this.#renderer.resolutionY * 4, // 4 bytes each for f32.
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-        });
-
-        this.#bindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    // SimParams
-                    binding: 0,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    // Values
-                    binding: 1,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: 'storage' }
-                },
-                {
-                    // UserInput
-                    binding: 2,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: 'storage' }
-                }
-            ]
-        });
-
-        this.#bindGroup = device.createBindGroup({
-            layout: this.#bindGroupLayout,
-            entries: [
-                {
-                    binding: 0,
-                    resource: { buffer: this.#simParamsBuffer }
-                },
-                {
-                    binding: 1,
-                    resource: { buffer: this.#valuesBuffer }
-                },
-                {
-                    binding: 2,
-                    resource: { buffer: this.#userInputBuffer }
-                }
-            ]
-        });
-
-        this.#shaderModule = device.createShaderModule({
-            code: shaderCode
-        });
-
-        this.#pipeline = device.createComputePipeline({
-            layout: device.createPipelineLayout({
-                bindGroupLayouts: [this.#bindGroupLayout]
-            }),
-            compute: {
-                module: this.#shaderModule,
-                entryPoint: 'main'
-            }
-        });
+export function createPaintPipeline(
+    renderer: Renderer,
+    simParamsBuffer: GPUBuffer,
+    valuesBuffer: GPUBuffer,
+): Pipeline & DrawsCircles {
+    if (!renderer.device) {
+        throw new Error("Trying to construct PaintPipeline when Renderer doesn't have device yet.");
     }
 
-    run(commandEncoder: GPUCommandEncoder): void{
+    const device = renderer.device;
+
+    const userInputBuffer = device.createBuffer({
+        size: renderer.resolutionX * renderer.resolutionY * 4, // 4 bytes each for f32.
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+    });
+
+    const bindGroupLayout = device.createBindGroupLayout({
+        entries: [
+            {
+                // SimParams
+                binding: 0,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: { type: 'uniform' }
+            },
+            {
+                // Values
+                binding: 1,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: { type: 'storage' }
+            },
+            {
+                // UserInput
+                binding: 2,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: { type: 'storage' }
+            }
+        ]
+    });
+
+    const bindGroup = device.createBindGroup({
+        layout: bindGroupLayout,
+        entries: [
+            {
+                binding: 0,
+                resource: { buffer: simParamsBuffer }
+            },
+            {
+                binding: 1,
+                resource: { buffer: valuesBuffer }
+            },
+            {
+                binding: 2,
+                resource: { buffer: userInputBuffer }
+            }
+        ]
+    });
+
+    const shaderModule = device.createShaderModule({
+        code: shaderCode
+    });
+
+    const pipeline = device.createComputePipeline({
+        layout: device.createPipelineLayout({
+            bindGroupLayouts: [bindGroupLayout]
+        }),
+        compute: {
+            module: shaderModule,
+            entryPoint: 'main'
+        }
+    });
+
+    return {
+        // run: (commandEncoder: GPUCommandEncoder) => run(commandEncoder, pipeline, bindGroup, renderer),
+        run,
+        drawCircle: (x: number, y: number, radius: number, value: number) => drawCircle(renderer, userInputBuffer, x, y, radius, value),
+    };
+
+    function run(commandEncoder: GPUCommandEncoder): void {
         const pass = commandEncoder.beginComputePass();
-        pass.setPipeline(this.#pipeline);
-        pass.setBindGroup(0, this.#bindGroup);
+        pass.setPipeline(pipeline);
+        pass.setBindGroup(0, bindGroup);
         pass.dispatchWorkgroups(
-            Math.ceil(this.#renderer.resolutionX / 16),
-            Math.ceil(this.#renderer.resolutionY / 16)
+            Math.ceil(renderer.resolutionX / 16),
+            Math.ceil(renderer.resolutionY / 16)
         );
         pass.end();
     }
+}
 
-    drawCircle(x: number, y: number, radius: number, value: number) {
-        if (!this.#renderer.queue) {
-            throw new Error("Trying to draw circle when Renderer doesn't have queue yet.");
+function drawCircle(
+    renderer: Renderer,
+    inputBuffer: GPUBuffer,
+    x: number,
+    y: number,
+    radius: number,
+    value: number
+) {
+    // Create a temporary array to hold our data
+    const data = new Float32Array(renderer.resolutionX * renderer.resolutionY);
+
+    // Calculate squared radius for efficiency
+    const radiusSquared = radius * radius;
+
+    // For each pixel in a square around the circle
+    for (let dy = -radius; dy <= radius; dy++) {
+        const py = Math.round(y + dy);
+        if (py < 0 || py >= renderer.resolutionY) {
+            continue;
         }
 
-        // TODO: rather than immediately queueing to write to buffer, that should
-        // be done as part of the `run` method. That way we can handle multiple
-        // inputs in a single pass.
-
-        // Create a temporary array to hold our data
-        const data = new Float32Array(this.#renderer.resolutionX * this.#renderer.resolutionY);
-
-        // Calculate squared radius for efficiency
-        const radiusSquared = radius * radius;
-
-        // For each pixel in a square around the circle
-        for (let dy = -radius; dy <= radius; dy++) {
-            const py = Math.round(y + dy);
-            if (py < 0 || py >= this.#renderer.resolutionY) {
+        for (let dx = -radius; dx <= radius; dx++) {
+            const px = Math.round(x + dx);
+            if (px < 0 || px >= renderer.resolutionX) {
                 continue;
             }
 
-            for (let dx = -radius; dx <= radius; dx++) {
-                const px = Math.round(x + dx);
-                if (px < 0 || px >= this.#renderer.resolutionX) {
-                    continue;
-                }
-
-                // Check if this point is within the circle
-                const distSquared = dx * dx + dy * dy;
-                if (distSquared <= radiusSquared) {
-                    // Write the value to our array
-                    const index = py * this.#renderer.resolutionX + px;
-                    data[index] = value;
-                }
+            // Check if this point is within the circle
+            const distSquared = dx * dx + dy * dy;
+            if (distSquared <= radiusSquared) {
+                // Write the value to our array
+                const index = py * renderer.resolutionX + px;
+                data[index] = value;
             }
         }
-
-        // Write the data to the GPU buffer
-        this.#renderer.queue!.writeBuffer(this.#userInputBuffer, 0, data);
     }
-};
+
+    // Write the data to the GPU buffer
+    renderer.queue!.writeBuffer(inputBuffer, 0, data);
+}

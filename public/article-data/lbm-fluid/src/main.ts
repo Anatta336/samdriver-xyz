@@ -1,16 +1,17 @@
 import '../../../css/style.css';
-import PaintPipeline from './fluid/paintPipeline';
+import { createPaintPipeline, DrawsCircles } from './fluid/paintPipeline';
 import Renderer from './renderer';
+import Pipeline from './webgpu/pipeline';
 
 const canvas = document.getElementById('gfx') as HTMLCanvasElement;
 const renderer = new Renderer(canvas);
-let paintPipeline = null as PaintPipeline|null;
+let paintPipeline: (Pipeline & DrawsCircles)|null = null;
 renderer.start();
 
 renderer.onReady.addCallback(() => {
     // TODO: the buffers will not be members of the renderer, instead provided by their own pipeline(s).
 
-    paintPipeline = new PaintPipeline(renderer, renderer.simParamsBuffer!, renderer.valuesBuffer!);
+    paintPipeline = createPaintPipeline(renderer, renderer.simParamsBuffer!, renderer.valuesBuffer!);
     renderer.extraPipelines.push(paintPipeline);
 
     canvas.addEventListener('click', onClick);
@@ -19,7 +20,7 @@ renderer.onReady.addCallback(() => {
 
 function onClick(event: MouseEvent) {
     if (!paintPipeline) {
-        console.warn("Click before AddPipeline is initialized");
+        console.warn("Click before PaintPipeline is initialized");
         return;
     }
 

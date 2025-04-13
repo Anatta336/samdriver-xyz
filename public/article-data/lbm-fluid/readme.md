@@ -11,3 +11,5 @@ npm run dev
 ## Notes
 - Pull the pipelines out of `renderer`. No need to make some totally generic thing, but also piling up too much stuff in there.
 
+- Handle context loss (or equivalent for WebGPU), see if structure needs changing to better recover.
+

@@ -1,6 +1,7 @@
 import { Pipeline, Renderer } from "../webgpu/renderer";
-import { SimParamsBuffer, ValuesBuffer } from "./bufferInterfaces";
-import shaderCode from "./combine.wgsl?raw";
+import shaderCode from "./paint.wgsl?raw";
+import { SimParamsBuffer } from "./simParams";
+import { ValuesBuffer } from "./simulatePipeline";
 
 export interface DrawsCircles {
     drawCircle(x: number, y: number, radius: number, value: number): void;
@@ -17,11 +18,10 @@ export function createPaintPipeline(
     simParamsBuffer: SimParamsBuffer,
     valuesBuffer: ValuesBuffer,
 ): Pipeline & DrawsCircles {
-    if (!renderer.device) {
-        throw new Error("Trying to create PaintPipeline when Renderer doesn't have device yet.");
+    const device = renderer.getDevice();
+    if (!device) {
+        throw new Error("Trying to create pipeline when Renderer doesn't have device yet.");
     }
-
-    const device = renderer.device;
 
     const [resolutionX, resolutionY] = renderer.getResolution();
 
@@ -92,7 +92,7 @@ export function createPaintPipeline(
     };
 
     return {
-        run: (commandEncoder: GPUCommandEncoder) => run(commandEncoder, state, renderer),
+        run: (commandEncoder: GPUCommandEncoder, _: number) => run(commandEncoder, state, renderer),
         drawCircle: (x: number, y: number, radius: number, value: number) =>
             drawCircle(renderer, state.userInputBuffer, x, y, radius, value),
     };
@@ -123,7 +123,7 @@ function drawCircle(
     radius: number,
     value: number
 ) {
-    // TODO: rework this to only add to only queue during the `run` method.
+    // TODO: rework this to only add to only queue during the `run` function.
 
     const [resolutionX, resolutionY] = renderer.getResolution();
 
@@ -154,6 +154,5 @@ function drawCircle(
         }
     }
 
-    // Write the data to the GPU buffer
-    renderer.queue!.writeBuffer(inputBuffer, 0, data);
+    renderer.getQueue().writeBuffer(inputBuffer, 0, data);
 }

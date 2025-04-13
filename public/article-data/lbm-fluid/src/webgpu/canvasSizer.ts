@@ -41,7 +41,8 @@ function handleResize(entries: ResizeObserverEntry[], state: CanvasSizerState) {
         state.canvas.width = width * window.devicePixelRatio;
         state.canvas.height = height * window.devicePixelRatio;
 
-        state.renderer?.resizeBackings();
+        // TODO: Would need to resize various buffers presumably?
+        // state.renderer?.resizeBackings();
     });
 }
 

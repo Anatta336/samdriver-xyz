@@ -1,10 +1,16 @@
 import '../../../css/style.css';
+import { createDrawPipeline } from './fluid/drawPipeline';
 import { createPaintPipeline, DrawsCircles } from './fluid/paintPipeline';
+import { createSimParamsPipeline, ProvidesSimParamsBuffer } from './fluid/simParams';
+import { createSimulatePipeline, ProvidesValuesBuffer } from './fluid/simulatePipeline';
 import { createRenderer, Pipeline, Renderer } from './webgpu/renderer';
 
 const canvas = document.getElementById('gfx') as HTMLCanvasElement;
 let renderer: Renderer | null = null;
+let simParamsPipeline: (Pipeline & ProvidesSimParamsBuffer) | null = null;
+let simulatePipeline: (Pipeline & ProvidesValuesBuffer) | null = null;
 let paintPipeline: (Pipeline & DrawsCircles) | null = null;
+let drawPipeline: Pipeline | null = null;
 
 init();
 
@@ -15,8 +21,30 @@ async function init() {
         return;
     }
 
-    paintPipeline = createPaintPipeline(renderer, renderer.simParamsBuffer!, renderer.valuesBuffer!);
-    renderer.extraPipelines.push(paintPipeline);
+    simParamsPipeline = createSimParamsPipeline(
+        renderer
+    );
+    simulatePipeline = createSimulatePipeline(
+        renderer,
+        simParamsPipeline.getSimParamsBuffer()
+    );
+    paintPipeline = createPaintPipeline(
+        renderer,
+        simParamsPipeline.getSimParamsBuffer(),
+        simulatePipeline.getValuesBuffer()
+    );
+    drawPipeline = createDrawPipeline(
+        renderer,
+        simParamsPipeline.getSimParamsBuffer(),
+        simulatePipeline.getValuesBuffer(),
+    );
+
+    renderer.addPipelines([
+        simParamsPipeline,
+        simulatePipeline,
+        paintPipeline,
+        drawPipeline,
+    ]);
 
     canvas.addEventListener('click', onClick);
     requestAnimationFrame(renderLoop);
@@ -40,7 +68,13 @@ function onClick(event: MouseEvent) {
 }
 
 function renderLoop() {
-    if (!renderer) return;
-    renderer.render();
+    if (!renderer) {
+        return;
+    }
+
+    // TODO: calculate real delta time, with cap.
+    const dt = 0.016;
+    renderer.render(dt);
+
     requestAnimationFrame(renderLoop);
 }

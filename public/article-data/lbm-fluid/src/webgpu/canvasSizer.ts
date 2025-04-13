@@ -1,4 +1,4 @@
-import Renderer from "../../renderer";
+import Renderer from "../renderer";
 
 export default class CanvasSizer {
     container: HTMLElement;

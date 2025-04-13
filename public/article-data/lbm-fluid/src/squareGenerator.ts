@@ -1,4 +1,4 @@
-import { createBufferFromArray } from "./util/webgpu/bufferHelpers";
+import { createBufferFromArray } from "./webgpu/bufferHelpers";
 import computeShaderCode from './shaders/square.compute.wgsl?raw';
 
 const dummyInput = new Uint32Array([

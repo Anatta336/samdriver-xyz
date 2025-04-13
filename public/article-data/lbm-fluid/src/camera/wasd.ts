@@ -1,6 +1,6 @@
 
 import { Mat4, Vec3, mat4, vec3 } from 'wgpu-matrix';
-import { clamp, mod, lerp } from '../util/webgpu/mathsHelpers';
+import { clamp, mod, lerp } from '../webgpu/mathsHelpers';
 import Camera, { CameraBase } from './base';
 import Input from '../input/input';
 

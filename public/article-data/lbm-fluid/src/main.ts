@@ -3,6 +3,7 @@ import { createDrawPipeline } from './fluid/drawPipeline';
 import { createPaintPipeline, DrawsCircles } from './fluid/paintPipeline';
 import { createSimParamsPipeline, ProvidesSimParamsBuffer } from './fluid/simParams';
 import { createSimulatePipeline, ProvidesValuesBuffer } from './fluid/simulatePipeline';
+import { createVelocityPipeline, RecordsMovement } from './fluid/velocityPipeline';
 import { createRenderer, Pipeline, Renderer } from './webgpu/renderer';
 
 const canvas = document.getElementById('gfx') as HTMLCanvasElement;
@@ -11,6 +12,7 @@ let renderer: Renderer | null = null;
 let simParamsPipeline: (Pipeline & ProvidesSimParamsBuffer) | null = null;
 let simulatePipeline: (Pipeline & ProvidesValuesBuffer) | null = null;
 let paintPipeline: (Pipeline & DrawsCircles) | null = null;
+let velocityPipeline: (Pipeline & RecordsMovement) | null = null;
 let drawPipeline: Pipeline | null = null;
 
 init();
@@ -34,6 +36,11 @@ async function init() {
         simParamsPipeline.getSimParamsBuffer(),
         simulatePipeline.getValuesBuffer()
     );
+    velocityPipeline = createVelocityPipeline(
+        renderer,
+        simParamsPipeline.getSimParamsBuffer(),
+        simulatePipeline.getValuesBuffer()
+    );
     drawPipeline = createDrawPipeline(
         renderer,
         simParamsPipeline.getSimParamsBuffer(),
@@ -44,10 +51,14 @@ async function init() {
         simParamsPipeline,
         simulatePipeline,
         paintPipeline,
+        velocityPipeline,
         drawPipeline,
     ]);
 
+    // Setup event listeners
     canvas.addEventListener('click', onClick);
+    canvas.addEventListener('mousemove', onMouseMove);
+
     resetButton.addEventListener('click', () => {
         if (simulatePipeline) {
             simulatePipeline.resetSimulation();
@@ -72,6 +83,22 @@ function onClick(event: MouseEvent) {
     const y = Math.round((yOnElement / canvas.height) * resolutionY);
 
     paintPipeline.drawCircle(x, y, 20.5, 1);
+}
+
+function onMouseMove(event: MouseEvent) {
+    if (!velocityPipeline || !renderer) {
+        return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const xOnElement = event.clientX - rect.left;
+    const yOnElement = event.clientY - rect.top;
+
+    const [resolutionX, resolutionY] = renderer.getResolution();
+    const x = (xOnElement / canvas.width) * resolutionX;
+    const y = (yOnElement / canvas.height) * resolutionY;
+
+    velocityPipeline.recordMovement(x, y);
 }
 
 function renderLoop() {

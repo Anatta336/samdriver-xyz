@@ -46,14 +46,10 @@ function run(
     dt: number
 ): void {
     const queue = state.renderer.getQueue();
-    if (!queue) {
-        throw new Error("Trying to run pipeline when Renderer doesn't have queue yet.");
-    }
-
     const [resolutionX, resolutionY] = state.renderer.getResolution();
     state.timeElapsed = state.timeElapsed + dt;
 
-    // Create our parameter buffer
+    // Parameter buffer with views in to it.
     const paramsArray = new ArrayBuffer(6 * 4);
     const u32View = new Uint32Array(paramsArray, 0, 2);
     const f32View = new Float32Array(paramsArray, 2 * 4, 4);
@@ -65,7 +61,7 @@ function run(
     // Time, relaxation parameter (omega), viscosity
     f32View[0] = state.timeElapsed;
     f32View[1] = 1.0 / 3.0; // omega (relaxation parameter) - typical value 1/tau where tau=3
-    f32View[2] = 0.05;      // viscosity
+    f32View[2] = 0.02;      // viscosity
     f32View[3] = 0.0;       // reserved for future use
 
     queue.writeBuffer(

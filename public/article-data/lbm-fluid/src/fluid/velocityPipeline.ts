@@ -1,17 +1,19 @@
 import { Pipeline, Renderer } from "../webgpu/renderer";
-import paintShaderCode from "./paint.wgsl?raw";
+import velocityShaderCode from "./velocity.wgsl?raw";
 import commonShaderCode from "./lbm_common.wgsl?raw";
 import { SimParamsBuffer } from "./simParams";
 import { ValuesBuffer } from "./simulatePipeline";
 
-export interface DrawsCircles {
-    drawCircle(x: number, y: number, radius: number, value: number): void;
+export interface RecordsMovement {
+    recordMovement(x: number, y:number): void;
 }
 
-interface PaintPipelineState {
-    userInputBuffer: GPUBuffer;
+interface VelocityPipelineState {
+    velocityInputBuffer: GPUBuffer;
     bindGroup: GPUBindGroup;
     pipeline: GPUComputePipeline;
+    lastPosition: {x: number, y: number} | null;
+    currentPosition: {x: number, y: number} | null;
 }
 
 // Helper function to process shader includes
@@ -26,25 +28,24 @@ function processShaderIncludes(shaderCode: string): string {
     });
 }
 
-export function createPaintPipeline(
+export function createVelocityPipeline(
     renderer: Renderer,
     simParamsBuffer: SimParamsBuffer,
     valuesBuffer: ValuesBuffer,
-): Pipeline & DrawsCircles {
+): Pipeline & RecordsMovement {
     const device = renderer.getDevice();
     if (!device) {
         throw new Error("Trying to create pipeline when Renderer doesn't have device yet.");
     }
 
-    const [resolutionX, resolutionY] = renderer.getResolution();
-
-    const userInputBuffer = device.createBuffer({
-        size: resolutionX * resolutionY * 4, // 4 bytes each for f32.
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-    });
-
     // Process the shader code to resolve includes
-    const processedShaderCode = processShaderIncludes(paintShaderCode);
+    const processedShaderCode = processShaderIncludes(velocityShaderCode);
+
+    // Create buffer for velocity input parameters
+    const velocityInputBuffer = device.createBuffer({
+        size: 6 * 4, // 6 x f32: startX, startY, endX, endY, strength, radius
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    });
 
     const bindGroupLayout = device.createBindGroupLayout({
         entries: [
@@ -55,16 +56,16 @@ export function createPaintPipeline(
                 buffer: { type: 'uniform' }
             },
             {
-                // Values
+                // Values buffer
                 binding: 1,
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: { type: 'storage' }
             },
             {
-                // UserInput
+                // Velocity input buffer
                 binding: 2,
                 visibility: GPUShaderStage.COMPUTE,
-                buffer: { type: 'storage' }
+                buffer: { type: 'uniform' }
             }
         ]
     });
@@ -82,7 +83,7 @@ export function createPaintPipeline(
             },
             {
                 binding: 2,
-                resource: { buffer: userInputBuffer }
+                resource: { buffer: velocityInputBuffer }
             }
         ]
     });
@@ -101,25 +102,61 @@ export function createPaintPipeline(
         }
     });
 
-    const state: PaintPipelineState = {
-        userInputBuffer,
+    const state: VelocityPipelineState = {
+        velocityInputBuffer,
         bindGroup,
         pipeline,
+        lastPosition: null,
+        currentPosition: null
     };
 
     return {
-        run: (commandEncoder: GPUCommandEncoder, _: number) => run(commandEncoder, state, renderer),
-        drawCircle: (x: number, y: number, radius: number, value: number) =>
-            drawCircle(renderer, state.userInputBuffer, x, y, radius, value),
+        run: (commandEncoder: GPUCommandEncoder, _: number) =>
+            run(commandEncoder, state, renderer),
+        recordMovement: (x: number, y:number) =>
+            state.currentPosition = { x, y },
     };
 }
 
 function run(
     commandEncoder: GPUCommandEncoder,
-    state: PaintPipelineState,
+    state: VelocityPipelineState,
     renderer: Renderer
 ): void {
     const [resolutionX, resolutionY] = renderer.getResolution();
+    const queue = renderer.getQueue();
+
+    const dx = (state.currentPosition?.x ?? 0) - (state.lastPosition?.x ?? 0);
+    const dy = (state.currentPosition?.y ?? 0) - (state.lastPosition?.y ?? 0);
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (!state.currentPosition || !state.lastPosition || distance < 1.0) {
+        // Not enough movement to apply velocity, so skip the shader run entirely.
+        state.lastPosition = state.currentPosition;
+        state.currentPosition = null;
+
+        return;
+    }
+
+    // Strength based on mouse movement speed (capped)
+    const strength = Math.min(distance * 0.005, 0.6);
+
+    const paramsArray = new Float32Array(6);
+    // startX
+    paramsArray[0] = state.lastPosition.x;
+    // startY
+    paramsArray[1] = state.lastPosition.y;
+    // endX
+    paramsArray[2] = state.currentPosition!.x;
+    // endY
+    paramsArray[3] = state.currentPosition!.y;
+    // strength
+    paramsArray[4] = strength;
+    // radius - how wide the velocity stroke is.
+    paramsArray[5] = 50.0;
+
+    // Write the data to the buffer, to be used by the compute shader.
+    queue.writeBuffer(state.velocityInputBuffer, 0, paramsArray);
 
     const pass = commandEncoder.beginComputePass();
     pass.setPipeline(state.pipeline);
@@ -129,46 +166,10 @@ function run(
         Math.ceil(resolutionY / 16)
     );
     pass.end();
+
+    commandEncoder.clearBuffer(state.velocityInputBuffer);
+
+    state.lastPosition = state.currentPosition;
+    state.currentPosition = null;
 }
 
-function drawCircle(
-    renderer: Renderer,
-    inputBuffer: GPUBuffer,
-    x: number,
-    y: number,
-    radius: number,
-    value: number
-) {
-    // TODO: rework this to only add to only queue during the `run` function.
-
-    const [resolutionX, resolutionY] = renderer.getResolution();
-
-    // Create a temporary array to hold our data
-    const data = new Float32Array(resolutionX * resolutionY);
-
-    // For each pixel in a square around the circle
-    const radiusSquared = radius * radius;
-    for (let dy = -radius; dy <= radius; dy++) {
-        const py = Math.round(y + dy);
-        if (py < 0 || py >= resolutionY) {
-            continue;
-        }
-
-        for (let dx = -radius; dx <= radius; dx++) {
-            const px = Math.round(x + dx);
-            if (px < 0 || px >= resolutionX) {
-                continue;
-            }
-
-            // Check if this point is within the circle
-            const distSquared = dx * dx + dy * dy;
-            if (distSquared <= radiusSquared) {
-                // Write the value to our array
-                const index = py * resolutionX + px;
-                data[index] = value;
-            }
-        }
-    }
-
-    renderer.getQueue().writeBuffer(inputBuffer, 0, data);
-}

@@ -1,6 +1,7 @@
 import vertShaderCode from './shaders/quad.vert.wgsl?raw';
 import fragShaderCode from './shaders/quad.frag.wgsl?raw';
 import computeShaderCode from './shaders/compute.wgsl?raw';
+import combineShaderCode from './shaders/combine.wgsl?raw';
 import { SimParams } from './sharedBufferLayouts';
 import Observer, { SimpleCallback } from './util/observer';
 
@@ -23,14 +24,17 @@ export default class Renderer {
 
     // Pipelines
     computePipeline: GPUComputePipeline|null|undefined;
+    combinePipeline: GPUComputePipeline|null|undefined;
     renderPipeline: GPURenderPipeline|null|undefined;
 
     // Buffers
     simParamsBuffer: GPUBuffer|null|undefined;
     valuesBuffer: GPUBuffer|null|undefined;
+    userInputBuffer: GPUBuffer|null|undefined;
 
     // Bind Groups
     computeBindGroup: GPUBindGroup|null|undefined;
+    combineBindGroup: GPUBindGroup|null|undefined;
     renderBindGroup: GPUBindGroup|null|undefined;
 
     // Simulation state
@@ -87,6 +91,12 @@ export default class Renderer {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
 
+        // Create user input buffer
+        this.userInputBuffer = this.device.createBuffer({
+            size: this.width * this.height * 4, // f32 values
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+        });
+
         // Create bind group layout for both compute and render
         const bindGroupLayout = this.device.createBindGroupLayout({
             entries: [
@@ -104,6 +114,30 @@ export default class Renderer {
             ]
         });
 
+        // Create bind group layout for combine pass
+        const combineBindGroupLayout = this.device.createBindGroupLayout({
+            entries: [
+                {
+                    // SimParams
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'uniform' }
+                },
+                {
+                    // Values
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'storage' }
+                },
+                {
+                    // UserInput
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'storage' }
+                }
+            ]
+        });
+
         // Create compute pipeline
         const computeModule = this.device.createShaderModule({
             code: computeShaderCode
@@ -115,6 +149,21 @@ export default class Renderer {
             }),
             compute: {
                 module: computeModule,
+                entryPoint: 'main'
+            }
+        });
+
+        // Create combine pipeline
+        const combineModule = this.device.createShaderModule({
+            code: combineShaderCode
+        });
+
+        this.combinePipeline = this.device.createComputePipeline({
+            layout: this.device.createPipelineLayout({
+                bindGroupLayouts: [combineBindGroupLayout]
+            }),
+            compute: {
+                module: combineModule,
                 entryPoint: 'main'
             }
         });
@@ -163,7 +212,26 @@ export default class Renderer {
             ]
         });
 
-        this.renderBindGroup = this.computeBindGroup; // Same bind group for both passes
+        this.combineBindGroup = this.device.createBindGroup({
+            layout: combineBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.simParamsBuffer }
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.valuesBuffer }
+                },
+                {
+                    binding: 2,
+                    resource: { buffer: this.userInputBuffer }
+                }
+            ]
+        });
+
+        // Compute pass and render pass can share a bind group.
+        this.renderBindGroup = this.computeBindGroup;
     }
 
     resizeBackings() {
@@ -188,8 +256,8 @@ export default class Renderer {
 
     render = () => {
         if (!this.device || !this.context || !this.queue ||
-            !this.computePipeline || !this.renderPipeline ||
-            !this.computeBindGroup || !this.renderBindGroup ||
+            !this.computePipeline || !this.renderPipeline || !this.combinePipeline ||
+            !this.computeBindGroup || !this.renderBindGroup || !this.combineBindGroup ||
             !this.simParamsBuffer
         ) {
             console.error('Renderer not fully initialized.');
@@ -232,6 +300,16 @@ export default class Renderer {
         );
         computePass.end();
 
+        // Combine pass
+        const combinePass = commandEncoder.beginComputePass();
+        combinePass.setPipeline(this.combinePipeline);
+        combinePass.setBindGroup(0, this.combineBindGroup);
+        combinePass.dispatchWorkgroups(
+            Math.ceil(this.width / 16),
+            Math.ceil(this.height / 16)
+        );
+        combinePass.end();
+
         // Render pass
         const renderPass = commandEncoder.beginRenderPass({
             colorAttachments: [{
@@ -250,4 +328,43 @@ export default class Renderer {
         // Submit commands
         this.queue.submit([commandEncoder.finish()]);
     };
+
+    drawCircle(x: number, y: number, radius: number, value: number) {
+        if (!this.device || !this.queue || !this.userInputBuffer) {
+            console.error('Cannot draw circle - renderer not initialized');
+            return;
+        }
+
+        // Create a temporary array to hold our data
+        const data = new Float32Array(this.width * this.height);
+
+        // Calculate squared radius for efficiency
+        const radiusSquared = radius * radius;
+
+        // For each pixel in a square around the circle
+        for (let dy = -radius; dy <= radius; dy++) {
+            const py = Math.round(y + dy);
+            if (py < 0 || py >= this.height) {
+                continue;
+            }
+
+            for (let dx = -radius; dx <= radius; dx++) {
+                const px = Math.round(x + dx);
+                if (px < 0 || px >= this.width) {
+                    continue;
+                }
+
+                // Check if this point is within the circle
+                const distSquared = dx * dx + dy * dy;
+                if (distSquared <= radiusSquared) {
+                    // Write the value to our array
+                    const index = py * this.width + px;
+                    data[index] = value;
+                }
+            }
+        }
+
+        // Write the data to the GPU buffer
+        this.queue.writeBuffer(this.userInputBuffer, 0, data);
+    }
 }

@@ -27,9 +27,14 @@ interface RendererState {
     time: number;
 }
 
-export async function createRenderer(canvas: HTMLCanvasElement): Promise<Renderer | null> {
+export async function createRenderer(
+    canvas: HTMLCanvasElement,
+    resolutionX: number = 256,
+    resolutionY: number = 256,
+    outputTargetFormat: GPUTextureFormat = 'bgra8unorm'
+): Promise<Renderer | null> {
 
-    const state = await initializeState(canvas);
+    const state = await initializeState(canvas, resolutionX, resolutionY, outputTargetFormat);
 
     const renderer: Renderer = {
         getCanvas: () => state.canvas,

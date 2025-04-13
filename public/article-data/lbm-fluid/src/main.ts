@@ -6,6 +6,7 @@ import { createSimulatePipeline, ProvidesValuesBuffer } from './fluid/simulatePi
 import { createRenderer, Pipeline, Renderer } from './webgpu/renderer';
 
 const canvas = document.getElementById('gfx') as HTMLCanvasElement;
+const resetButton = document.getElementById('reset') as HTMLButtonElement;
 let renderer: Renderer | null = null;
 let simParamsPipeline: (Pipeline & ProvidesSimParamsBuffer) | null = null;
 let simulatePipeline: (Pipeline & ProvidesValuesBuffer) | null = null;
@@ -15,7 +16,7 @@ let drawPipeline: Pipeline | null = null;
 init();
 
 async function init() {
-    renderer = await createRenderer(canvas);
+    renderer = await createRenderer(canvas, 500, 500);
     if (!renderer) {
         console.error('Failed to create renderer');
         return;
@@ -47,6 +48,12 @@ async function init() {
     ]);
 
     canvas.addEventListener('click', onClick);
+    resetButton.addEventListener('click', () => {
+        if (simulatePipeline) {
+            simulatePipeline.resetSimulation();
+            console.log("Simulation reset");
+        }
+    });
     requestAnimationFrame(renderLoop);
 }
 

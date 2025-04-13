@@ -25,7 +25,7 @@ export function createSimParamsPipeline(
     }
 
     const simParamsBuffer = device.createBuffer({
-        size: 3 * 4, // 3 32-bit values
+        size: 6 * 4, // 6 32-bit values
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -53,16 +53,24 @@ function run(
     const [resolutionX, resolutionY] = state.renderer.getResolution();
     state.timeElapsed = state.timeElapsed + dt;
 
-    // Width and height are u32.
+    // Create our parameter buffer
+    const paramsArray = new ArrayBuffer(6 * 4);
+    const u32View = new Uint32Array(paramsArray, 0, 2);
+    const f32View = new Float32Array(paramsArray, 2 * 4, 4);
+
+    // Width and height are u32
+    u32View[0] = resolutionX;
+    u32View[1] = resolutionY;
+
+    // Time, relaxation parameter (omega), viscosity
+    f32View[0] = state.timeElapsed;
+    f32View[1] = 1.0 / 3.0; // omega (relaxation parameter) - typical value 1/tau where tau=3
+    f32View[2] = 0.05;      // viscosity
+    f32View[3] = 0.0;       // reserved for future use
+
     queue.writeBuffer(
         state.simParamsBuffer,
         0,
-        new Uint32Array([resolutionX, resolutionY]),
-    );
-    // Time is f32, offset after the previous 2x u32 values.
-    queue.writeBuffer(
-        state.simParamsBuffer,
-        2 * 4,
-        new Float32Array([state.timeElapsed])
+        paramsArray
     );
 }

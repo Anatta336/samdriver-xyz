@@ -17,20 +17,19 @@
 
         <h2>Demo</h2>
         <noscript>
-            <!-- if javascript is disabled hide the canvas that we can't use -->
             <style>
             .requires-script {
                 display: none;
             }
             </style>
-            <p class="warning">Javascript is disabled or unavailable in your browser so the interactive demo can't be shown.</p>
+            <p class="warning">Javascript is disabled or unavailable in your browser so the demo can't be shown.</p>
         </noscript>
 
         <button id="generate-button" class="requires-script">
             Generate
         </button>
         <div id="gfx-container" class="requires-script">
-            <canvas class="interactive" id="gfx" width=500 height=500></canvas>
+            <canvas class="interactive" id="gfx" width="500" height="500"></canvas>
         </div>
 
         <script type="module" src="/src/main.ts"></script>

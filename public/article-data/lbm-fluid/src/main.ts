@@ -1,26 +1,30 @@
 import '../../../css/style.css';
 import { createPaintPipeline, DrawsCircles } from './fluid/paintPipeline';
-import Renderer from './renderer';
-import Pipeline from './webgpu/pipeline';
+import { createRenderer, Pipeline, Renderer } from './webgpu/renderer';
 
 const canvas = document.getElementById('gfx') as HTMLCanvasElement;
-const renderer = new Renderer(canvas);
-let paintPipeline: (Pipeline & DrawsCircles)|null = null;
-renderer.start();
+let renderer: Renderer | null = null;
+let paintPipeline: (Pipeline & DrawsCircles) | null = null;
 
-renderer.onReady.addCallback(() => {
-    // TODO: the buffers will not be members of the renderer, instead provided by their own pipeline(s).
+init();
+
+async function init() {
+    renderer = await createRenderer(canvas);
+    if (!renderer) {
+        console.error('Failed to create renderer');
+        return;
+    }
 
     paintPipeline = createPaintPipeline(renderer, renderer.simParamsBuffer!, renderer.valuesBuffer!);
     renderer.extraPipelines.push(paintPipeline);
 
     canvas.addEventListener('click', onClick);
     requestAnimationFrame(renderLoop);
-});
+}
 
 function onClick(event: MouseEvent) {
-    if (!paintPipeline) {
-        console.warn("Click before PaintPipeline is initialized");
+    if (!paintPipeline || !renderer) {
+        console.warn("Click before initialization is complete");
         return;
     }
 
@@ -28,13 +32,15 @@ function onClick(event: MouseEvent) {
     const xOnElement = event.clientX - rect.left;
     const yOnElement = event.clientY - rect.top;
 
-    const x = Math.round((xOnElement / canvas.width) * renderer.resolutionX);
-    const y = Math.round((yOnElement / canvas.height) * renderer.resolutionY);
+    const [resolutionX, resolutionY] = renderer.getResolution();
+    const x = Math.round((xOnElement / canvas.width) * resolutionX);
+    const y = Math.round((yOnElement / canvas.height) * resolutionY);
 
     paintPipeline.drawCircle(x, y, 20.5, 1);
 }
 
 function renderLoop() {
+    if (!renderer) return;
     renderer.render();
     requestAnimationFrame(renderLoop);
 }

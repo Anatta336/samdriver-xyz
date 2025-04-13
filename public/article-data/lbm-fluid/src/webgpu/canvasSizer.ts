@@ -1,45 +1,60 @@
-import Renderer from "../renderer";
+import { Renderer } from "./renderer";
 
-export default class CanvasSizer {
-    container: HTMLElement;
+interface CanvasSizerState {
     canvas: HTMLCanvasElement;
+    container: HTMLElement;
     renderer: Renderer;
     resizeObserver: ResizeObserver;
+}
 
-    constructor(canvas: HTMLCanvasElement, container: HTMLElement, renderer: Renderer) {
-        this.canvas = canvas;
-        this.container = container;
-        this.renderer = renderer;
+export interface CanvasSizer {
+    start(): void;
+    dispose(): void;
+}
 
-        this.resizeObserver = new ResizeObserver(this.handleResize.bind(this));
-    }
+export function createCanvasSizer(
+    canvas: HTMLCanvasElement,
+    container: HTMLElement,
+    renderer: Renderer
+): CanvasSizer {
+    const state: CanvasSizerState = {
+        canvas,
+        container,
+        renderer,
+        resizeObserver: new ResizeObserver((entries) => handleResize(entries, state))
+    };
 
-    start() {
-        this.initialResize();
-        this.resizeObserver.observe(this.container);
-    }
+    return {
+        start: () => start(state),
+        dispose: () => dispose(state)
+    };
+}
 
-    dispose() {
-        this.resizeObserver.unobserve(this.container);
-    }
+function handleResize(entries: ResizeObserverEntry[], state: CanvasSizerState) {
+    entries.forEach((entry) => {
+        if (entry.target != state.container) {
+            // Nothing to do.
+            return;
+        }
+        const { width, height } = entry.contentRect;
 
-    protected handleResize(entries: ResizeObserverEntry[]) {
-        entries.forEach((entry) => {
-            if (entry.target != this.container) {
-                // Nothing to do.
-                return;
-            }
-            const { width, height } = entry.contentRect;
+        state.canvas.width = width * window.devicePixelRatio;
+        state.canvas.height = height * window.devicePixelRatio;
 
-            this.canvas.width = width * window.devicePixelRatio;
-            this.canvas.height = height * window.devicePixelRatio;
+        state.renderer?.resizeBackings();
+    });
+}
 
-            this.renderer?.resizeBackings();
-        });
-    }
+function initialResize(state: CanvasSizerState) {
+    state.canvas.width = state.container.clientWidth * window.devicePixelRatio;
+    state.canvas.height = state.container.clientHeight * window.devicePixelRatio;
+}
 
-    protected initialResize() {
-        this.canvas.width = this.container.clientWidth * window.devicePixelRatio;
-        this.canvas.height = this.container.clientHeight * window.devicePixelRatio;
-    }
+function start(state: CanvasSizerState) {
+    initialResize(state);
+    state.resizeObserver.observe(state.container);
+}
+
+function dispose(state: CanvasSizerState) {
+    state.resizeObserver.unobserve(state.container);
 }

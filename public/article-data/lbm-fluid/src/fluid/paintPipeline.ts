@@ -1,10 +1,15 @@
-import Renderer from "../renderer";
-import Pipeline from "../webgpu/pipeline";
+import { Pipeline, Renderer } from "../webgpu/renderer";
 import { SimParamsBuffer, ValuesBuffer } from "./bufferInterfaces";
 import shaderCode from "./combine.wgsl?raw";
 
 export interface DrawsCircles {
     drawCircle(x: number, y: number, radius: number, value: number): void;
+}
+
+interface PaintPipelineState {
+    userInputBuffer: GPUBuffer;
+    bindGroup: GPUBindGroup;
+    pipeline: GPUComputePipeline;
 }
 
 export function createPaintPipeline(
@@ -13,13 +18,15 @@ export function createPaintPipeline(
     valuesBuffer: ValuesBuffer,
 ): Pipeline & DrawsCircles {
     if (!renderer.device) {
-        throw new Error("Trying to construct PaintPipeline when Renderer doesn't have device yet.");
+        throw new Error("Trying to create PaintPipeline when Renderer doesn't have device yet.");
     }
 
     const device = renderer.device;
 
+    const [resolutionX, resolutionY] = renderer.getResolution();
+
     const userInputBuffer = device.createBuffer({
-        size: renderer.resolutionX * renderer.resolutionY * 4, // 4 bytes each for f32.
+        size: resolutionX * resolutionY * 4, // 4 bytes each for f32.
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
     });
 
@@ -78,22 +85,34 @@ export function createPaintPipeline(
         }
     });
 
-    return {
-        // run: (commandEncoder: GPUCommandEncoder) => run(commandEncoder, pipeline, bindGroup, renderer),
-        run,
-        drawCircle: (x: number, y: number, radius: number, value: number) => drawCircle(renderer, userInputBuffer, x, y, radius, value),
+    const state: PaintPipelineState = {
+        userInputBuffer,
+        bindGroup,
+        pipeline,
     };
 
-    function run(commandEncoder: GPUCommandEncoder): void {
-        const pass = commandEncoder.beginComputePass();
-        pass.setPipeline(pipeline);
-        pass.setBindGroup(0, bindGroup);
-        pass.dispatchWorkgroups(
-            Math.ceil(renderer.resolutionX / 16),
-            Math.ceil(renderer.resolutionY / 16)
-        );
-        pass.end();
-    }
+    return {
+        run: (commandEncoder: GPUCommandEncoder) => run(commandEncoder, state, renderer),
+        drawCircle: (x: number, y: number, radius: number, value: number) =>
+            drawCircle(renderer, state.userInputBuffer, x, y, radius, value),
+    };
+}
+
+function run(
+    commandEncoder: GPUCommandEncoder,
+    state: PaintPipelineState,
+    renderer: Renderer
+): void {
+    const [resolutionX, resolutionY] = renderer.getResolution();
+
+    const pass = commandEncoder.beginComputePass();
+    pass.setPipeline(state.pipeline);
+    pass.setBindGroup(0, state.bindGroup);
+    pass.dispatchWorkgroups(
+        Math.ceil(resolutionX / 16),
+        Math.ceil(resolutionY / 16)
+    );
+    pass.end();
 }
 
 function drawCircle(
@@ -104,22 +123,24 @@ function drawCircle(
     radius: number,
     value: number
 ) {
-    // Create a temporary array to hold our data
-    const data = new Float32Array(renderer.resolutionX * renderer.resolutionY);
+    // TODO: rework this to only add to only queue during the `run` method.
 
-    // Calculate squared radius for efficiency
-    const radiusSquared = radius * radius;
+    const [resolutionX, resolutionY] = renderer.getResolution();
+
+    // Create a temporary array to hold our data
+    const data = new Float32Array(resolutionX * resolutionY);
 
     // For each pixel in a square around the circle
+    const radiusSquared = radius * radius;
     for (let dy = -radius; dy <= radius; dy++) {
         const py = Math.round(y + dy);
-        if (py < 0 || py >= renderer.resolutionY) {
+        if (py < 0 || py >= resolutionY) {
             continue;
         }
 
         for (let dx = -radius; dx <= radius; dx++) {
             const px = Math.round(x + dx);
-            if (px < 0 || px >= renderer.resolutionX) {
+            if (px < 0 || px >= resolutionX) {
                 continue;
             }
 
@@ -127,7 +148,7 @@ function drawCircle(
             const distSquared = dx * dx + dy * dy;
             if (distSquared <= radiusSquared) {
                 // Write the value to our array
-                const index = py * renderer.resolutionX + px;
+                const index = py * resolutionX + px;
                 data[index] = value;
             }
         }

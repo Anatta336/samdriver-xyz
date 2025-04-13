@@ -4,6 +4,7 @@ import computeShaderCode from './shaders/compute.wgsl?raw';
 import { SimParams } from './sharedBufferLayouts';
 import Observer, { SimpleCallback } from './util/observer';
 import Pipeline from './webgpu/pipeline';
+import { SimParamsBuffer, ValuesBuffer } from './fluid/bufferInterfaces';
 
 export default class Renderer {
     canvas: HTMLCanvasElement;
@@ -28,9 +29,8 @@ export default class Renderer {
     renderPipeline: GPURenderPipeline|null|undefined;
 
     // Buffers
-    simParamsBuffer: GPUBuffer|null|undefined;
-    valuesBuffer: GPUBuffer|null|undefined;
-    userInputBuffer: GPUBuffer|null|undefined;
+    simParamsBuffer: SimParamsBuffer|null|undefined;
+    valuesBuffer: ValuesBuffer|null|undefined;
 
     // Bind Groups
     computeBindGroup: GPUBindGroup|null|undefined;
@@ -88,12 +88,6 @@ export default class Renderer {
 
         // Create values buffer
         this.valuesBuffer = this.device.createBuffer({
-            size: this.resolutionX * this.resolutionY * 4, // f32 values
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-        });
-
-        // Create user input buffer
-        this.userInputBuffer = this.device.createBuffer({
             size: this.resolutionX * this.resolutionY * 4, // f32 values
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });

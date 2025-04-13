@@ -1,5 +1,6 @@
 import Renderer from "../renderer";
 import Pipeline from "../webgpu/pipeline";
+import { SimParamsBuffer, ValuesBuffer } from "./bufferInterfaces";
 import shaderCode from "./combine.wgsl?raw";
 
 export interface DrawsCircles {
@@ -8,8 +9,8 @@ export interface DrawsCircles {
 
 export function createPaintPipeline(
     renderer: Renderer,
-    simParamsBuffer: GPUBuffer,
-    valuesBuffer: GPUBuffer,
+    simParamsBuffer: SimParamsBuffer,
+    valuesBuffer: ValuesBuffer,
 ): Pipeline & DrawsCircles {
     if (!renderer.device) {
         throw new Error("Trying to construct PaintPipeline when Renderer doesn't have device yet.");

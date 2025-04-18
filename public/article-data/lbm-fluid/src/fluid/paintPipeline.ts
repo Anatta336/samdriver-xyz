@@ -1,6 +1,5 @@
 import { Pipeline, Renderer } from "../webgpu/renderer";
-import paintShaderCode from "./paint.wgsl?raw";
-import commonShaderCode from "./lbm_common.wgsl?raw";
+import paintShaderCode from "./shaders/paint.wgsl";
 import { SimParamsBuffer } from "./simParams";
 import { ValuesBuffer } from "./simulatePipeline";
 
@@ -12,18 +11,6 @@ interface PaintPipelineState {
     userInputBuffer: GPUBuffer;
     bindGroup: GPUBindGroup;
     pipeline: GPUComputePipeline;
-}
-
-// Helper function to process shader includes
-function processShaderIncludes(shaderCode: string): string {
-    // Simple include processor - replaces #include statements with the content of the referenced file
-    return shaderCode.replace(/#include\s+"([^"]+)"/g, (_, includePath) => {
-        if (includePath === "lbm_common.wgsl") {
-            return commonShaderCode;
-        }
-        console.warn(`Unknown include: ${includePath}`);
-        return "";
-    });
 }
 
 export function createPaintPipeline(
@@ -42,9 +29,6 @@ export function createPaintPipeline(
         size: resolutionX * resolutionY * 4, // 4 bytes each for f32.
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
     });
-
-    // Process the shader code to resolve includes
-    const processedShaderCode = processShaderIncludes(paintShaderCode);
 
     const bindGroupLayout = device.createBindGroupLayout({
         entries: [
@@ -88,7 +72,7 @@ export function createPaintPipeline(
     });
 
     const shaderModule = device.createShaderModule({
-        code: processedShaderCode
+        code: paintShaderCode,
     });
 
     const pipeline = device.createComputePipeline({

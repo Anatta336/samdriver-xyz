@@ -1,4 +1,4 @@
-#include "lbm_common.wgsl"
+#include lbm_common.wgsl;
 
 @group(0) @binding(0) var<uniform> params: SimParams;
 @group(0) @binding(1) var<storage, read_write> values: array<f32>;

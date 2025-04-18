@@ -1,5 +1,5 @@
 import { Pipeline, Renderer } from "../webgpu/renderer";
-import shaderCode from "./simulate.wgsl?raw";
+import shaderCode from "./shaders/simulate.wgsl";
 import { SimParamsBuffer } from "./simParams";
 
 interface SimulatePipelineState {

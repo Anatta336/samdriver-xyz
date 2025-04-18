@@ -1,6 +1,6 @@
 import { Pipeline, Renderer } from "../webgpu/renderer";
-import vertexShaderCode from "./render.vert.wgsl?raw";
-import fragmentShaderCode from "./render.frag.wgsl?raw";
+import vertexShaderCode from "./shaders/render.vert.wgsl";
+import fragmentShaderCode from "./shaders/render.frag.wgsl";
 import { SimParamsBuffer } from "./simParams";
 import { ValuesBuffer } from "./simulatePipeline";
 

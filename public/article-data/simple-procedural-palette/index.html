@@ -143,11 +143,13 @@ input.preset:hover, input.preset:active {
 <p>This technique for generating colours lets you turn a single value into a colour that will smoothly change as the input value varies. This is very useful for colouring things like heat maps that you might normally just shade in greyscale. So long as the <code>repeat</code> set of values are integers the colour will also cycle smoothly if you loop from 1 back to 0, which makes it convenient for many more uses.</p>
 
 <p>The creation of the colour is a fairly simple operation, and on modern hardware can be safely done in realtime. The code isn't as immediately clear in Javascript, so I've included a short pseudocode version too.</p>
-<pre><code>// in a language with good vector support
-function generateColour(t) {
-   return constant + multi * cos(2 * pi * repeat + phase);
-}</code></pre>
-<pre><code>// in plain javascript
+<pre><code>// in WebGPU shader code
+const PI2: f32 = 6.28319;
+fn generateColour(t: f32) -&gt; vec3&lt;f32&gt; {
+    return constant + multi * cos(PI2 * (t * repeat + phase));
+}
+</code></pre>
+<pre><code>// in plain JavaScript
 var PI2 = 6.28319;
 function generateColour(t) {
    if (t &lt; 0.0 || t &gt;= 1.0) t -= Math.floor(t);

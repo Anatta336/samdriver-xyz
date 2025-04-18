@@ -1,6 +1,5 @@
 import { Pipeline, Renderer } from "../webgpu/renderer";
-import velocityShaderCode from "./velocity.wgsl?raw";
-import commonShaderCode from "./lbm_common.wgsl?raw";
+import velocityShaderCode from "./shaders/velocity.wgsl";
 import { SimParamsBuffer } from "./simParams";
 import { ValuesBuffer } from "./simulatePipeline";
 
@@ -16,18 +15,6 @@ interface VelocityPipelineState {
     currentPosition: {x: number, y: number} | null;
 }
 
-// Helper function to process shader includes
-function processShaderIncludes(shaderCode: string): string {
-    // Simple include processor - replaces #include statements with the content of the referenced file
-    return shaderCode.replace(/#include\s+"([^"]+)"/g, (_, includePath) => {
-        if (includePath === "lbm_common.wgsl") {
-            return commonShaderCode;
-        }
-        console.warn(`Unknown include: ${includePath}`);
-        return "";
-    });
-}
-
 export function createVelocityPipeline(
     renderer: Renderer,
     simParamsBuffer: SimParamsBuffer,
@@ -37,9 +24,6 @@ export function createVelocityPipeline(
     if (!device) {
         throw new Error("Trying to create pipeline when Renderer doesn't have device yet.");
     }
-
-    // Process the shader code to resolve includes
-    const processedShaderCode = processShaderIncludes(velocityShaderCode);
 
     // Create buffer for velocity input parameters
     const velocityInputBuffer = device.createBuffer({
@@ -89,7 +73,7 @@ export function createVelocityPipeline(
     });
 
     const shaderModule = device.createShaderModule({
-        code: processedShaderCode
+        code: velocityShaderCode,
     });
 
     const pipeline = device.createComputePipeline({

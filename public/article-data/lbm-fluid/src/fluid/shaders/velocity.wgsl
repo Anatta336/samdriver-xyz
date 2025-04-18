@@ -1,4 +1,4 @@
-#include "lbm_common.wgsl"
+#include lbm_common.wgsl;
 
 struct VelocityInput {
     startX: f32,

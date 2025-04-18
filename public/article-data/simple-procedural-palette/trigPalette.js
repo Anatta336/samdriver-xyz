@@ -115,15 +115,26 @@ pixelFlame = function () {
 	}
 
 	function updateText() {
-		var text = "";
+		var text = "// JavaScript\n";
 		for (key in palette) {
 			var attri = palette[key];
-			var keyPadded = (key + Array(9).join(" ")).substring(0, 9);
+			var keyPadded = `${key}         `.substring(0, 9);
 			text += keyPadded + "= {";
 			text += "r: " + attri.r.toFixed(2) + ", ";
 			text += "g: " + attri.g.toFixed(2) + ", ";
 			text += "b: " + attri.b.toFixed(2) + "};\n";
 		}
+
+        text += "\n// WebGPU\n";
+        for (key in palette) {
+            var attri = palette[key];
+            var keyPadded = `let ${key}        `.substring(0, 12);
+            text += keyPadded + " = vec3<f32>(";
+            text += attri.r.toFixed(2) + ", ";
+            text += attri.g.toFixed(2) + ", ";
+            text += attri.b.toFixed(2) + ");\n";
+        }
+
 		readoutText.innerHTML = text;
 	}
 

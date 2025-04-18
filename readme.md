@@ -15,7 +15,7 @@ Access site at `http://netdev.samdriver.xyz/`
 ## Deploying
 Assuming you're me, or have stolen the appropriate private key.
 ```sh
-. ./deploy.sh
+. ./scripts/deploy.sh
 ```
 
 ## Converting Images

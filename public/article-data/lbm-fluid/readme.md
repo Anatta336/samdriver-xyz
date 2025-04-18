@@ -1,12 +1,6 @@
 # Lattice Boltzman Method fluid simulation using WebGPU
 
-## Running locally
-Built using npm version 10.9.1, node v22.11.0. Anything similar is likely to work.
-
-```sh
-npm install
-npm run dev
-```
+Code is in a separate repository: https://github.com/Anatta336/webgpu-lbm
 
 ## References
 - https://surma.dev/things/webgpu/

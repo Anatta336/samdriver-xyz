@@ -1,4 +1,4 @@
-import '../../../css/style.css';
+import '../../../css/style.css'; // Only needed for local development when main site isn't served.
 import { createDrawPipeline } from './fluid/drawPipeline';
 import { createPaintPipeline, DrawsCircles } from './fluid/paintPipeline';
 import { createSimParamsPipeline, ProvidesSimParamsBuffer } from './fluid/simParams';
@@ -8,6 +8,8 @@ import { createRenderer, Pipeline, Renderer } from './webgpu/renderer';
 
 const canvas = document.getElementById('gfx') as HTMLCanvasElement;
 const resetButton = document.getElementById('reset') as HTMLButtonElement;
+const viscositySlider = document.getElementById('viscosity-slider') as HTMLInputElement;
+const viscosityValue = document.getElementById('viscosity-value') as HTMLSpanElement;
 let renderer: Renderer | null = null;
 let simParamsPipeline: (Pipeline & ProvidesSimParamsBuffer) | null = null;
 let simulatePipeline: (Pipeline & ProvidesValuesBuffer) | null = null;
@@ -65,7 +67,21 @@ async function init() {
             console.log("Simulation reset");
         }
     });
+
+    // Setup viscosity slider
+    viscositySlider.addEventListener('input', onViscosityChange);
+
     requestAnimationFrame(renderLoop);
+}
+
+function onViscosityChange() {
+    if (!simParamsPipeline) {
+        return;
+    }
+
+    const value = parseFloat(viscositySlider.value);
+    simParamsPipeline.setViscosity(value);
+    viscosityValue.textContent = value.toFixed(3);
 }
 
 function onClick(event: MouseEvent) {

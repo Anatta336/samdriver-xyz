@@ -4,10 +4,12 @@ interface SimParamsState {
     simParamsBuffer: SimParamsBuffer;
     timeElapsed: number;
     renderer: Renderer;
+    viscosity: number;
 }
 
 export interface ProvidesSimParamsBuffer {
     getSimParamsBuffer(): SimParamsBuffer;
+    setViscosity(value: number): void;
 }
 
 /**
@@ -33,11 +35,13 @@ export function createSimParamsPipeline(
         simParamsBuffer,
         timeElapsed: 0,
         renderer,
+        viscosity: 0.1,
     };
 
     return {
         run: (_: GPUCommandEncoder, dt: number) => run(state, dt),
         getSimParamsBuffer: () => simParamsBuffer,
+        setViscosity: (value: number) => { state.viscosity = value; },
     };
 }
 
@@ -58,10 +62,13 @@ function run(
     u32View[0] = resolutionX;
     u32View[1] = resolutionY;
 
+    // Calculate omega from viscosity.
+    const omega = 1.0 / (3.0 * state.viscosity + 0.5);
+
     // Time, relaxation parameter (omega), viscosity
     f32View[0] = state.timeElapsed;
-    f32View[1] = 1.0 / 3.0; // omega (relaxation parameter) - typical value 1/tau where tau=3
-    f32View[2] = 0.02;      // viscosity
+    f32View[1] = omega;
+    f32View[2] = state.viscosity;
     f32View[3] = 0.0;       // reserved for future use
 
     queue.writeBuffer(

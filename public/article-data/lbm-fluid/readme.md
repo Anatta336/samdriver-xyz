@@ -8,10 +8,6 @@ npm install
 npm run dev
 ```
 
-## Notes
-- Is the fluid simulation behaving itself? Results from injecting velocity seem odd.
-- Add advecting dye. May also provide useful debug information.
-- Handle context loss (or equivalent for WebGPU), see if structure needs changing to better recover.
-
 ## References
-https://surma.dev/things/webgpu/
+- https://surma.dev/things/webgpu/
+- https://en.wikipedia.org/wiki/Lattice_Boltzmann_methods

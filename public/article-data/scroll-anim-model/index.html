@@ -15,33 +15,101 @@
     <article>
 
 <noscript>
-    <!-- if javascript is disabled hide the elements that we can't use -->
-    <style>
-    #palette-canvas, #palette-form, #value-readout, #preset-box {
-        display: none;
-    }
-    </style>
-    <p class="warning">Javascript is disabled or unavailable in your browser so this page cannot display properly. Normally we'd fall back to a static image.</p>
-
+    <style>#hero { display: none; }</style>
+    <p class="warning">Javascript is unavailable — the interactive 3D viewer cannot be shown.</p>
 </noscript>
 
 <style>
+/* ── Hero wrapper ── */
+#hero {
+    position: relative;
+    height: 580vh;
+}
+
+/* ── Sticky canvas fills the viewport ── */
 #top-canvas {
+    position: sticky;
+    top: 0;
     display: block;
     width: 100%;
-    aspect-ratio: 16 / 9;
+    height: 100svh;
     background: transparent;
 }
+
+/* ── Text panels ── */
+.scroll-section {
+    position: absolute;
+    width: 80%;
+    max-width: 400px;
+    padding: 1.8rem 2.2rem;
+    background: rgba(8, 8, 18, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    color: #ede9e3;
+    pointer-events: none;
+    user-select: none;
+}
+.scroll-section .tag {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(160, 200, 255, 0.8);
+}
+.scroll-section h2 {
+    margin: 0 0 0.65rem;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+.scroll-section p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: rgba(237, 233, 227, 0.82);
+}
+
+/* Each section positioned so it enters the viewport bottom
+   exactly when its camera animation triggers. */
+#s0 { top: 180vh; left:  6%; }
+#s1 { top: 280vh; right: 6%; }
+#s2 { top: 380vh; left:  6%; }
+#s3 { top: 480vh; right: 6%; }
 </style>
 
-<canvas id="top-canvas"></canvas>
+<div id="hero">
+    <canvas id="top-canvas"></canvas>
 
+    <div class="scroll-section" id="s0">
+        <span class="tag">01 — Overview</span>
+        <h2>It's a Watering Can</h2>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    </div>
 
+    <div class="scroll-section" id="s1">
+        <span class="tag">02 — Nozzle</span>
+        <h2>The Perfect Pour</h2>
+        <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+    </div>
+
+    <div class="scroll-section" id="s2">
+        <span class="tag">03 — Form</span>
+        <h2>Engineered</h2>
+        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+    </div>
+
+    <div class="scroll-section" id="s3">
+        <span class="tag">04 — Trigger</span>
+        <h2>Why is it like that?</h2>
+        <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    </div>
+</div>
 
 <script defer="true" src="/article-data/scroll-anim-model/index.js"></script>
-
-<h2>Subtitle</h2>
-<p>Example text here.</p>
 
     </article>
 </body>

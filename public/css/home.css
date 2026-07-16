@@ -1,0 +1,761 @@
+/* ==========================================================================
+   Home page: floppy disks scattered on a desk, viewed from above.
+   Cassette-futurism skeuomorphism. Light source is up and to the left.
+   ========================================================================== */
+
+/* Desk surface, plate header, and shared hardware details live in desk.css,
+   loaded before this file. This file adds the disk field and the drive. */
+
+@layer base, desk, disks, drive, states;
+
+/* The drag offset/sway vars are written per animation frame while dragging.
+   Registered as non-inheriting so each write restyles only the disk element
+   itself, not its whole subtree. Universal syntax and no initial-value keep
+   them guaranteed-invalid when unset, so the var() fallbacks (--tilt, 0px)
+   still apply. --lift and --shadow are NOT registered: they must inherit
+   from a.disk down to .disk-lift. */
+@property --dx { syntax: '*'; inherits: false; }
+@property --dy { syntax: '*'; inherits: false; }
+@property --rot { syntax: '*'; inherits: false; }
+
+@layer base {
+    :root {
+        --paper: #ede6d2;
+        --ink: #2a3038;
+
+        /* Space reserved at the page bottom so disks can scroll clear of the drive. */
+        --drive-clearance: 205px;
+    }
+
+    /* A disk sliding into the drive is translated below the last row and past
+       the foot of the page, and transform overflow counts as scrollable
+       overflow: at the end of an insert it grew the scroll region and put a
+       scrollbar on a page that had fitted the view until then. Clipped rather
+       than desk.css's overflow-x: hidden, which is a scroll container and so
+       turns the overshoot into somewhere to scroll to; clip is not, so the
+       disk is simply painted and cut. The cut lands at the foot of the page,
+       by which point the disk is behind the drive's front face anyway.
+
+       Clipping alone would drop the block formatting context that the scroll
+       container had been providing for free, letting the plate's top margin
+       collapse out through the body and push the page down by its own height.
+       flow-root keeps it. */
+    body {
+        overscroll-behavior-y: none;
+        overflow: clip;
+        display: flow-root;
+    }
+}
+
+/* ==========================================================================
+   The disks.
+   ========================================================================== */
+
+@layer disks {
+    /* No stacking context on nav itself: disk cells must be able to layer
+       both above (dragging) and below (inserting) the fixed drive plate. */
+    nav {
+        padding: clamp(14px, 3vw, 40px) clamp(14px, 3.5vw, 48px) var(--drive-clearance);
+    }
+
+    ul.disk-field {
+        margin: 0;
+        padding: 0;
+        list-style-type: none;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 20vw, 225px), 1fr));
+        gap: clamp(6px, 1.8vw, 26px) clamp(4px, 1.2vw, 18px);
+        justify-items: center;
+    }
+
+    li.disk-cell {
+        position: relative;
+        z-index: var(--z, 2);
+        inline-size: 115%;
+        display: flex;
+        justify-content: center;
+        container-type: inline-size;
+    }
+
+    /* State-driven z-index: a held disk floats above everything, including
+       the drive (z 30), while it is carried and while it swings over the
+       slot. Once it descends (.is-entering, set by insertDisk in home.js)
+       it drops between the drive's two halves — behind the front face at
+       z 30, in front of the backdrop at z 15 — and the opaque face occludes
+       whatever has gone in, with no clip to keep in step with the movement. */
+    li.disk-cell:has(.disk:is(.is-raised, :focus-visible)) { z-index: 26; }
+    li.disk-cell:has(.disk:is(.is-dragging, .is-inserting)) { z-index: 35; }
+    li.disk-cell:has(.disk.is-entering) { z-index: 20; }
+
+    a.disk {
+        display: block;
+        inline-size: 86%;
+        aspect-ratio: 90 / 94;
+        text-decoration: none;
+        color: var(--ink);
+        cursor: grab;
+        -webkit-user-drag: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: pan-y;
+
+        /* Scatter (from the server-set seed vars) + drag offset from JS.
+           translate applies before rotate, so drag stays in page space. */
+        translate: calc(var(--jx) + var(--dx, 0px)) calc(var(--jy) + var(--dy, 0px));
+        rotate: var(--rot, var(--tilt));
+        scale: var(--scale, 1);
+        transition:
+            translate 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1),
+            rotate 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1),
+            scale 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+
+        outline-offset: 6px;
+    }
+
+    a.disk:focus-visible {
+        outline: 2px dashed var(--led-amber);
+    }
+
+    /* Inner wrapper: lift scale, shadows, entrance animation. */
+    .disk-lift {
+        display: block;
+        position: relative;
+        isolation: isolate;
+        inline-size: 100%;
+        block-size: 100%;
+        scale: var(--lift, 1);
+        transition: scale 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+        animation: disk-deal 0.62s cubic-bezier(0.18, 0.72, 0.3, 1) backwards;
+        animation-delay: calc(var(--i) * 55ms);
+    }
+
+    /* Shadows: two pre-rendered box-shadow layers crossfaded with opacity,
+       driven by --shadow (1 = resting, ~3-4 = airborne). Animating filter:
+       drop-shadow() here re-rasterised the whole disk every frame of a
+       hover/lift transition; opacity crossfades stay on the compositor. */
+    .disk-lift::before,
+    .disk-lift::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        border-radius: 4% / 3.8%;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+    }
+
+    /* Contact shadow while resting on the desk. */
+    .disk-lift::before {
+        box-shadow: 7px 12px 9px rgb(15 12 5 / 0.28);
+        opacity: clamp(0, 2 - var(--shadow, 1), 1);
+    }
+
+    /* Soft distant shadow once lifted off the surface. */
+    .disk-lift::after {
+        box-shadow:
+            6px 10px 6px rgb(15 12 5 / 0.32),
+            22px 38px 30px rgb(15 12 5 / 0.26);
+        opacity: clamp(0, (var(--shadow, 1) - 1) / 2.2, 1);
+    }
+
+    /* Dealt in: each disk slides down from its own start point off the top of
+       the view, tumbling to rest at its scattered angle. translate and rotate
+       here are the lift's own, so they compose with the disk's scatter and
+       tilt rather than overwriting them, and revert cleanly when the (backwards
+       -filling) animation ends.
+
+       --deal-x/--deal-y are written by home.js, which is the only place that
+       can know how far a given disk sits from the top edge. The fallbacks
+       cover the frames before it runs: straight up and out of the view, which
+       is the same move, just not from a random spot along the edge. */
+    @keyframes disk-deal {
+        from {
+            translate: var(--deal-x, 0px) var(--deal-y, -110vh);
+            rotate: var(--deal-rot, -90deg);
+        }
+    }
+
+    /* The plastic shell. */
+    .disk-shell {
+        position: relative;
+        display: block;
+        inline-size: 100%;
+        block-size: 100%;
+        border-radius: 4% / 3.8%;
+        /* border-top-right-radius: 9%;
+        corner-top-right-shape: bevel; */
+        background:
+            var(--noise-img),
+            linear-gradient(148deg,
+                color-mix(in oklab, var(--shell), white 16%) 0%,
+                var(--shell) 42%,
+                color-mix(in oklab, var(--shell), black 14%) 100%);
+        background-size: 140px 140px, 100% 100%;
+        background-blend-mode: overlay, normal;
+        box-shadow:
+            inset 1px 1px 1px rgb(255 255 255 / 0.28),
+            inset -1px -1px 1px rgb(0 0 0 / 0.35),
+            inset 0 0 14px rgb(0 0 0 / 0.08);
+        overflow: hidden;
+    }
+
+    /* Wear pass: scuffs and shine streaks, amount varies per disk. */
+    .disk-shell::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: var(--streak-img) 0 0 / 240px 80px;
+        mix-blend-mode: overlay;
+        opacity: calc(var(--wear) * 0.4);
+    }
+
+    /* Chamfered corner, moulded into the bottom-right of the shell. */
+    /* TODO: replace with corner shape. */
+    /* .disk-shell::before {
+        content: '';
+        position: absolute;
+        inset-block-end: 0;
+        inset-inline-end: 0;
+        inline-size: 9%;
+        aspect-ratio: 1;
+        background: linear-gradient(315deg,
+            rgb(0 0 0 / 0.4) 0%,
+            rgb(0 0 0 / 0.22) 46%,
+            rgb(255 255 255 / 0.14) 54%,
+            transparent 62%);
+        pointer-events: none;
+    } */
+
+    /* Metal shutter along the top (insertion) edge. */
+    .shutter {
+        position: absolute;
+        inset-block-start: 0;
+        inset-inline-start: 25%;
+        inline-size: 50%;
+        block-size: 29%;
+        border-radius: 0 0 6% 6% / 0 0 14% 14%;
+        background:
+            var(--streak-img) 0 0 / 240px 80px,
+            linear-gradient(115deg, #c8cacc 0%, #9da1a6 30%, #d4d7d9 52%, #8e9297 78%, #b3b7ba 100%);
+        background-blend-mode: soft-light, normal;
+        box-shadow:
+            inset 0 -1px 1px rgb(255 255 255 / 0.4),
+            inset 1px 1px 2px rgb(0 0 0 / 0.3),
+            0 1px 2px rgb(0 0 0 / 0.35);
+    }
+
+    /* Cutout in the shutter. Closed, so we see the disk body, not magnetic disk. */
+    .shutter-window {
+        position: absolute;
+        inset-block-start: 12%;
+        inset-block-end: 12%;
+        inset-inline-end: 12%;
+        inline-size: 26%;
+        border-radius: 8%;
+        background:
+            var(--noise-img),
+            linear-gradient(148deg,
+                color-mix(in oklab, var(--shell), white 16%) 0%,
+                var(--shell) 42%,
+                color-mix(in oklab, var(--shell), black 14%) 100%);
+        background-size: 140px 140px, 100% 100%;
+        background-blend-mode: overlay, normal;
+        /* background: linear-gradient(180deg,
+            color-mix(in oklab, var(--shell), white 16%) 0%,
+            var(--shell) 42%,
+            color-mix(in oklab, var(--shell), black 8%) 100%); */
+        box-shadow:
+            inset 0 1px 2px rgb(0 0 0 / 0.6),
+            0 1px 0 rgb(255 255 255 / 0.35);
+    }
+
+    /* Indent where the shutter would move to when open. */
+    .shutter-indent {
+        position: absolute;
+        inset-block-start: 0;
+        inset-inline-start: 10.5%;
+        inset-inline-end: 24.5%;
+        block-size: 29.4%;
+        border-radius: 0 0 5% 5%;
+        box-shadow: inset 0px 0px 2px rgb(0 0 0 / 33%), 0 1px 0 rgb(255 255 255 / 0.35);
+    }
+
+    /* Moulded insertion arrow next to the shutter. */
+    .moulded-arrow {
+        position: absolute;
+        inset-block-start: 4.5%;
+        inset-inline-start: 2.5%;
+        inline-size: 7%;
+        aspect-ratio: 1;
+        clip-path: polygon(50% 0, 100% 100%, 0 100%);
+        background: rgb(0 0 0 / 0.18);
+        box-shadow: inset 0 -1px 0 rgb(255 255 255 / 0.15);
+    }
+
+    /* Write-protect / density holes near the bottom corners. */
+    .hole {
+        position: absolute;
+        inset-block-end: 4%;
+        inline-size: 3.8%;
+        aspect-ratio: 1;
+        border-radius: 18%;
+        background: #14120f;
+        box-shadow:
+            inset 0 1px 2px rgb(0 0 0 / 0.9),
+            0 1px 0 rgb(255 255 255 / 0.14);
+    }
+    .hole-left { inset-inline-start: 4.5%; }
+    .hole-right { inset-inline-end: 4.5%; }
+
+    /* Grip ridges moulded along the bottom edge. */
+    .grip {
+        position: absolute;
+        inset-block-end: 0;
+        inset-inline-start: 12%;
+        inline-size: 30%;
+        block-size: 7%;
+        background: repeating-linear-gradient(90deg,
+            rgb(0 0 0 / 0.16) 0 2px,
+            transparent 2px 5px,
+            rgb(255 255 255 / 0.07) 5px 6px,
+            transparent 6px 8px);
+        pointer-events: none;
+    }
+
+    /* --------------------------------------------------------------------
+       The paper label, slightly askew, printed on a tired dot-matrix.
+       -------------------------------------------------------------------- */
+    .label {
+        position: absolute;
+        inset-block-start: 34%;
+        inset-inline: 10%;
+        block-size: 42%;
+        display: flex;
+        flex-direction: column;
+        padding: 7.5cqi 5cqi 3cqi;
+        border-radius: 1.5% / 2%;
+        background:
+            /* Faded ruled lines. */
+            repeating-linear-gradient(180deg,
+                transparent 0 calc(9.2cqi - 1px),
+                rgba(90, 110, 140, 0.122) calc(9.2cqi - 1px) 9.2cqi),
+            var(--noise-img),
+            /* Paper yellows with age in proportion to the disk's wear. */
+            linear-gradient(160deg,
+                color-mix(in oklab, var(--paper), #cfa963 calc(var(--wear) * 16%)) 0%,
+                color-mix(in oklab, #e2d9c1, #c99f55 calc(var(--wear) * 20%)) 70%,
+                color-mix(in oklab, #d6ccb2, #c0954e calc(var(--wear) * 22%)) 100%);
+        background-size: 100% 100%, 140px 140px, 100% 100%;
+        background-blend-mode: normal, soft-light, normal;
+        box-shadow:
+            0 1px 2px rgb(0 0 0 / 0.35),
+            inset 0 0 6px rgb(120 90 40 / calc(var(--wear) * 0.35));
+        overflow: hidden;
+    }
+
+    /* Coloured brand band across the label top. */
+    .label::before {
+        content: '';
+        position: absolute;
+        inset-block-start: 0;
+        inset-inline: 0;
+        block-size: 4.5cqi;
+        background: repeating-linear-gradient(135deg,
+            var(--accent) 0 22%,
+            #b8483a 22% 26%,
+            #c7ced1 26% 30%,
+            #8ebacd 30% 100%);
+        opacity: 0.85;
+    }
+
+    .label h2 {
+        margin: 0;
+        font-family: var(--font-mono);
+        font-size: calc(7.4cqi * var(--title-scale, 1));
+        line-height: 1.22;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        text-transform: uppercase;
+        color: var(--ink);
+        text-wrap: balance;
+        /* Ribbon running dry: faint horizontal banding through the print. */
+        -webkit-mask-image: repeating-linear-gradient(180deg, #000 0 2px, rgb(0 0 0 / 0.75) 2px 3px);
+        mask-image: repeating-linear-gradient(180deg, #000 0 2px, rgb(0 0 0 / 0.75) 2px 3px);
+    }
+
+    .disk-desc {
+        margin: 1.5cqi 0 0;
+        font-family: var(--font-mono);
+        font-size: 4.6cqi;
+        line-height: 1.35;
+        color: color-mix(in oklab, var(--ink), var(--paper) 25%);
+        display: none;
+        opacity: 0;
+        transition: opacity 0.3s ease 0.1s;
+    }
+
+    .label-meta {
+        margin-block-start: auto;
+        display: flex;
+        justify-content: space-between;
+        gap: 1em;
+        font-family: var(--font-mono);
+        font-size: 3.8cqi;
+        letter-spacing: 0.04em;
+        color: color-mix(in oklab, var(--ink), var(--paper) 40%);
+    }
+
+    /* --------------------------------------------------------------------
+       LOAD button: a little moulded hardware button, shown when raised.
+       -------------------------------------------------------------------- */
+    .load-btn {
+        position: absolute;
+        inset-block-start: 6%;
+        inset-inline-start: 50%;
+        translate: -50% 0;
+        display: inline-grid;
+        place-items: center;
+        min-inline-size: 93px;
+        min-block-size: 51px;
+        padding: 1.6cqi 5cqi 1.9cqi;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #5b5442;
+        text-shadow: 0 1px 0 rgb(255 255 255 / 0.3);
+        font-weight: 700;
+        border-radius: 4px;
+        background: linear-gradient(180deg, #d6ccb4, #b3a98f);
+        box-shadow:
+            inset 0 1px 0 rgb(255 255 255 / 0.4),
+            inset 0 -2px 2px rgb(0 0 0 / 0.25),
+            0 2px 3px rgb(0 0 0 / 0.45),
+            0 4px 8px rgb(0 0 0 / 0.3);
+        opacity: 0;
+        scale: 0.8;
+        pointer-events: none;
+    }
+}
+
+/* ==========================================================================
+   Interaction states.
+   ========================================================================== */
+
+@layer states {
+    /* A disk being handled gets its own compositor layer, so the per-frame
+       translate/rotate/scale writes composite without repainting. Resting
+       disks stay unpromoted (a layer each would be pure memory cost). */
+    a.disk:is(.is-raised, .is-dragging, .is-inserting) {
+        will-change: translate, rotate, scale;
+    }
+
+    @media (hover: hover) {
+        /* Hover only scales (pure compositor work): disks sweep under the
+           cursor constantly while scrolling, and touching --shadow here
+           would repaint the blurred shadow pseudos mid-scroll. The scale
+           lift grows the shadows a touch anyway. Full shadow crossfades
+           are reserved for the click-anchored states below. */
+        a.disk:hover:not(.is-raised, .is-dragging, .is-inserting) {
+            --lift: 1.03;
+        }
+    }
+
+    /* Picked up: raised off the surface, straightened, details readable. */
+    a.disk:is(.is-raised, :focus-visible) {
+        --rot: calc(var(--tilt) * 0.25);
+        --lift: 1.17;
+        --shadow: 3.2;
+        cursor: grabbing;
+
+        .disk-desc {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            overflow: hidden;
+            opacity: 1;
+        }
+        .label-meta { opacity: 0.35; }
+        .load-btn {
+            opacity: 1;
+            scale: 1;
+            pointer-events: auto;
+        }
+    }
+
+    @supports (transition-behavior: allow-discrete) {
+        .disk-desc {
+            transition: opacity 0.3s ease 0.1s, display 0.3s allow-discrete;
+        }
+        @starting-style {
+            a.disk:is(.is-raised, :focus-visible) .disk-desc { opacity: 0; }
+        }
+    }
+
+    /* Being carried to the drive. */
+    a.disk.is-dragging {
+        transition: rotate 0.15s ease, scale 0.3s ease;
+        --lift: 1.12;
+        --shadow: 4;
+        cursor: grabbing;
+        touch-action: none;
+    }
+
+    /* Sliding into the drive: handled with inline transition overrides in JS. */
+    a.disk.is-inserting {
+        cursor: default;
+        pointer-events: none;
+        .load-btn { opacity: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .disk-lift { animation: none; }
+        a.disk, .disk-lift, .disk-lift::before, .disk-lift::after, .load-btn, .disk-desc {
+            transition-duration: 0.01s !important;
+        }
+    }
+}
+
+/* ==========================================================================
+   The disk drive, mounted flush into the desk. Slot faces the viewer.
+   ========================================================================== */
+
+@layer drive {
+    /* Flush with the bottom of the view, never floating above it: a disk
+       sliding into the slot carries on past the plate, and any gap below
+       would show it re-emerging under the drive. Sitting lower than the
+       view (so the chin runs off-screen) is fine — that direction hides
+       the disk rather than revealing it. */
+    aside.drive {
+        position: fixed;
+        z-index: 30;
+        inset-block-end: 0;
+        inset-inline: 10px;
+        display: flex;
+        justify-content: center;
+        pointer-events: none; /* let clicks fall through around the plate */
+    }
+
+    .drive-plate {
+        pointer-events: auto;
+        position: relative;
+        inline-size: min(100%, 280px);
+        /* Keeps the chin clear of the iOS home indicator without lifting
+           the plate's box off the bottom of the view. */
+        padding: 12px 16px env(safe-area-inset-bottom, 0px);
+        border-radius: 10px;
+        background:
+            var(--noise-img),
+            linear-gradient(170deg, #cfc5ad 0%, var(--putty) 40%, #9e9479 100%);
+        background-size: 140px 140px, 100% 100%;
+        background-blend-mode: soft-light, normal;
+        box-shadow:
+            /* Sunk into the desk: dark seam around the plate. */
+            0 0 0 3px rgb(20 18 12 / 0.55),
+            0 0 0 4px rgb(255 255 255 / 0.06),
+            inset 0 1px 0 rgb(255 255 255 / 0.45),
+            inset 0 -2px 3px rgb(0 0 0 / 0.2),
+            2px 4px 10px rgb(0 0 0 / 0.3);
+    }
+
+    /* The drive's backdrop — everything down to the bottom of the slot
+       opening — carrying a clone of the plate clipped to that strip and
+       parked on the real plate's box, but *below* a descending disk. The
+       disk passes in front of it and is swallowed at the bottom of the
+       opening, so it reads as sliding into the dark slot rather than behind
+       the drive. Built by insertDisk in home.js, which also sets the
+       geometry; the wrapper only has to hold the clone in place. */
+    .drive-backdrop {
+        position: fixed;
+        z-index: 15;
+        pointer-events: none;
+    }
+
+    /* The dark inside the slot, laid over a disk on its way in (between the
+       disk at z 20 and the drive's front face at z 30) so it sinks into
+       shadow instead of staying lit against the opening. Light falls in from
+       above and gives out with depth, hence near-clear at the lip and nearly
+       black at the bottom of the opening, where the disk is swallowed.
+       Parked on the opening by insertDisk in home.js. */
+    .slot-shadow {
+        position: fixed;
+        z-index: 25;
+        pointer-events: none;
+        border-radius: 2px;
+        background: linear-gradient(
+            180deg,
+            rgb(0 0 0 / 0.0) 0%,
+            rgb(0 0 0 / 0.35) 40%,
+            rgb(0 0 0 / 0.88) 100%);
+        /* The overhanging bezel's shadow, now falling across the disk
+           instead of an empty opening. Mirrors .slot-opening's own. */
+        /* box-shadow: inset 0 3px 4px rgb(0 0 0 / 0.9); */
+    }
+
+    /* Mid-insert the plate paints only the drive's front face and the clone
+       paints the backdrop. Together they paint the whole plate; the negative
+       outsets keep the seam and drop shadow intact on the other three sides.
+       The 1px of overlap matters, and has to be a whole pixel: the halves
+       must not meet on a shared edge, or both get antialiased there and the
+       row comes out half-painted as a hairline across the drive's face. The
+       overlap goes to the plate, which paints above both the clone and the
+       disk, so it swallows the disk a pixel early — invisible, where a seam
+       would not be. Both layers are static: the drive cannot move mid-insert,
+       so neither clip tracks anything. */
+    aside.drive.is-split .drive-plate {
+        clip-path: inset(calc(var(--face-top, 28px) - 1px) -60px -60px -60px);
+    }
+
+    .drive-slot {
+        position: relative;
+        block-size: 20px;
+        border-radius: 4px;
+        background: linear-gradient(180deg, #776f5b, #8d8469);
+        box-shadow:
+            inset 0 2px 3px rgb(0 0 0 / 0.5),
+            0 1px 0 rgb(255 255 255 / 0.35);
+        padding: 4px 8px;
+    }
+
+    .slot-opening {
+        display: block;
+        block-size: 100%;
+        border-radius: 2px;
+        background: linear-gradient(180deg, #0b0a08 0%, #191713 70%, #262119 100%);
+        box-shadow:
+            inset 0 3px 4px rgb(0 0 0 / 0.9),
+            inset 0 -1px 0 rgb(255 255 255 / 0.08);
+        transition: box-shadow 0.2s ease;
+    }
+
+    .drive-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-block-start: 9px;
+    }
+
+    /* Bottom strip of the plate: vents and the site's small print
+       (both shared components from desk.css). */
+    .drive-chin {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 3px 12px;
+        margin-block-start: 8px;
+        padding-block-start: 7px;
+        /* Moulded groove separating the chin from the controls. */
+        box-shadow: 0 -1px 0 rgb(255 255 255 / 0.3), 0 -2px 1px rgb(0 0 0 / 0.12);
+    }
+
+    .drive-chin .chin-vents {
+        inline-size: clamp(48px, 7vw, 84px);
+        block-size: 7px;
+    }
+
+    .drive-led {
+        inline-size: 9px;
+        block-size: 9px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #8a3c34, var(--led-off) 65%);
+        box-shadow:
+            inset 0 1px 1px rgb(0 0 0 / 0.6),
+            0 1px 0 rgb(255 255 255 / 0.3);
+        transition: background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .drive-legend {
+        flex: 1;
+        font-family: var(--font-mono);
+        font-size: 0.6rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #5b5442;
+        text-shadow: 0 1px 0 rgb(255 255 255 / 0.3);
+    }
+
+    .drive-eject {
+        inline-size: 34px;
+        block-size: 18px;
+        padding: 0;
+        border: none;
+        border-radius: 3px;
+        font-size: 0.6rem;
+        line-height: 1;
+        color: #55503f;
+        background: linear-gradient(180deg, #d6ccb4, #b3a98f);
+        box-shadow:
+            inset 0 1px 0 rgb(255 255 255 / 0.5),
+            inset 0 -1px 1px rgb(0 0 0 / 0.2),
+            0 2px 2px rgb(0 0 0 / 0.35);
+        cursor: pointer;
+    }
+    .drive-eject:active {
+        translate: 0 1px;
+        box-shadow:
+            inset 0 1px 2px rgb(0 0 0 / 0.3),
+            0 1px 1px rgb(0 0 0 / 0.3);
+    }
+
+    .drive-screw {
+        position: absolute;
+        inline-size: 8px;
+        block-size: 8px;
+        border-radius: 50%;
+        background:
+            linear-gradient(45deg, transparent 42%, #4c463565 44%, #4c463565 56%, transparent 58%),
+            radial-gradient(circle at 35% 30%, #ddd3ba24, #91876c26 70%);
+        box-shadow:
+            inset 0 -1px 1px rgb(0 0 0 / 0.4),
+            0px 0px 0.5px 1px rgb(18 18 26 / 51%),
+            0px 0px 0px 2px rgba(255, 252, 239, 0.093);
+    }
+    .screw-tl { inset-block-start: 5px; inset-inline-start: 6px; rotate: 12deg; }
+    .screw-tr { inset-block-start: 5px; inset-inline-end: 6px; rotate: 80deg; }
+    .screw-bl { inset-block-end: 5px; inset-inline-start: 6px; rotate: -30deg; }
+    .screw-br { inset-block-end: 5px; inset-inline-end: 6px; rotate: 55deg; }
+
+    /* A disk is hovering over the slot. */
+    aside.drive.is-target {
+        .slot-opening {
+            box-shadow:
+                inset 0 3px 4px rgb(0 0 0 / 0.9),
+                inset 0 -1px 0 rgb(255 255 255 / 0.08),
+                0 0 8px rgb(240 167 46 / 0.55);
+        }
+        .drive-led {
+            background: radial-gradient(circle at 35% 30%, #ffd684, var(--led-amber) 65%);
+            box-shadow:
+                0 0 7px rgb(240 167 46 / 0.8),
+                inset 0 1px 1px rgb(0 0 0 / 0.2);
+        }
+    }
+
+    /* Disk accepted: reading. */
+    aside.drive.is-loading .drive-led {
+        background: radial-gradient(circle at 35% 30%, #c6ffc2, var(--led-green) 65%);
+        box-shadow: 0 0 8px rgb(110 224 106 / 0.9), inset 0 1px 1px rgb(0 0 0 / 0.2);
+        animation: led-read 0.32s steps(2, jump-none) infinite;
+    }
+
+    @keyframes led-read {
+        50% {
+            background: radial-gradient(circle at 35% 30%, #8a3c34, var(--led-off) 65%);
+            box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.6);
+        }
+    }
+
+    /* Wider screens: the drive docks bottom-right and disks need less
+       bottom clearance since the field is wider. */
+    @media (min-width: 760px) {
+        aside.drive {
+            inset-inline: auto clamp(16px, 3vw, 44px);
+            justify-content: flex-end;
+        }
+        .drive-plate { inline-size: clamp(300px, 27vw, 380px); }
+        :root { --drive-clearance: 180px; }
+    }
+}

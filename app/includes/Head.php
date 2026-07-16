@@ -4,19 +4,28 @@ namespace App\Includes;
 
 class Head
 {
-    public static function render(string $title = '', string $description = ''): string
-    {
+    public static function render(
+        string $title = '',
+        string $description = '',
+        string $styleSheetPath = '/css/style.css'
+    ): string {
         $title = htmlentities($title);
         $description = htmlentities($description);
 
-        // Cachebusting for CSS.
-        $cssModified = filemtime(__DIR__.'/../../public/css/style.css');
+        // Shared desk styles first, then the page's own stylesheet.
+        // Both cachebusted by modification time.
+        $styleSheetLinks = '';
+        foreach (['/css/desk.css', $styleSheetPath] as $path) {
+            $modified = filemtime(__DIR__.'/../../public'.$path);
+            $pathWithoutCss = str_replace('.css', '', $path);
+            $styleSheetLinks .= '<link rel="stylesheet" href="'.$pathWithoutCss.'.'.$modified.'.css">'."\n    ";
+        }
 
         return <<<EOD
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link rel="stylesheet" href="/css/style.{$cssModified}.css">
+            {$styleSheetLinks}
 
             <head profile="http://www.w3.org/2005/10/profile">
             <link rel="icon" type="image/png" href="/favicon/gradient-32x32.png">

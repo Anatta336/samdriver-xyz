@@ -1,0 +1,212 @@
+/* ==========================================================================
+   The desk: shared foundation for every page. Cassette-futurism
+   skeuomorphism, light source up and to the left.
+
+   Loaded before the page stylesheet (see Head.php). Contains the desk
+   surface, the engraved plate header, and small hardware details reused by
+   the home page's disk drive and the article pages' monitor.
+   ========================================================================== */
+
+@layer base, desk;
+
+@font-face {
+    font-display: swap;
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/fonts/roboto-v30-latin-regular.woff2') format('woff2'),
+        url('/fonts/roboto-v30-latin-regular.woff') format('woff'),
+        url('/fonts/roboto-v30-latin-regular.ttf') format('truetype');
+}
+@font-face {
+    font-display: swap;
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 700;
+    src: url('/fonts/roboto-v30-latin-700.woff2') format('woff2'),
+        url('/fonts/roboto-v30-latin-700.woff') format('woff'),
+        url('/fonts/roboto-v30-latin-700.ttf') format('truetype');
+}
+
+@layer base {
+    :root {
+        /* Fine monochrome noise, used as a repeating "detail texture".
+           The -75/-50/-25 variants are the same pattern at reduced opacity,
+           so they tile interchangeably with the full-strength one. Blended
+           with overlay or soft-light, the opacity scales how much the noise
+           contributes: pick the weakest one that still reads as texture. */
+        --noise-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        /* --noise-img-75: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='0.75' filter='url(%23n)'/%3E%3C/svg%3E");
+        --noise-img-50: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='0.5' filter='url(%23n)'/%3E%3C/svg%3E"); */
+        --noise-img-25: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='0.25' filter='url(%23n)'/%3E%3C/svg%3E");
+        /* Horizontally-streaked turbulence: scuffs and brushed metal. */
+        --streak-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='80'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.012 0.35' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+
+        --surface: #45463c;
+        --surface-ink: #cdc7b4;
+        --surface-ink-dim: #96917f;
+
+        --putty: #c5bba4;
+        --putty-dark: #a89e86;
+        --accent: #d86a2e;
+
+        --led-off: #57201d;
+        --led-amber: #f0a72e;
+        --led-green: #6ee06a;
+
+        /* Screen-printed lettering on putty plastic. */
+        --plastic-ink: #6b6450;
+        --plastic-ink-strong: #423d2e;
+
+        --font-mono: ui-monospace, 'Cascadia Mono', 'Courier New', monospace;
+        --font-body: 'Roboto', system-ui, sans-serif;
+
+        color-scheme: dark;
+        scrollbar-color: #6a6a58 #35362e;
+
+        overflow-x: hidden;
+    }
+
+    body {
+        margin: 0;
+        min-height: 100dvh;
+        font-family: var(--font-body);
+        color: var(--surface-ink);
+        background-color: var(--surface);
+        background-image:
+            var(--noise-img-25),
+            /* Old coffee mug rings. */
+            radial-gradient(circle, transparent 40.5%, rgb(52 32 12 / 0.2) 42.5%, rgb(52 32 12 / 0.05) 45%, transparent 47.5%),
+            radial-gradient(circle, transparent 39%, rgb(52 32 12 / 0.12) 41.5%, transparent 45.5%),
+            radial-gradient(circle, transparent 40%, rgb(52 32 12 / 0.1) 42.5%, transparent 46%),
+            radial-gradient(140% 100% at 22% 0%, #565748 0%, #45463c 55%, #393a31 100%);
+        background-size: 140px 140px, 170px 170px, 170px 170px, 130px 130px, 100% 100%;
+        background-position: 0 0, calc(100% - 4vw) 23rem, calc(100% - 4.4vw) 23.2rem, 8vw 82svh, 0 0;
+        background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+        /* Backgrounds scroll with the document: the desk moves under the
+           viewer, only the lighting (the ::after vignette) stays put. */
+        background-blend-mode: soft-light, multiply, multiply, multiply, normal;
+        overflow-x: hidden;
+    }
+
+    /* Soft lighting vignette over the whole desk. */
+    body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        pointer-events: none;
+        background: radial-gradient(130% 120% at 30% 10%, transparent 55%, rgb(10 10 5 / 0.28) 100%);
+    }
+}
+
+/* ==========================================================================
+   Desk furniture and shared hardware details.
+   ========================================================================== */
+
+@layer desk {
+    /* Engraved name plate: page title, description on an embossed tape strip. */
+    header.desk-plate {
+        margin: clamp(14px, 3vw, 34px) auto clamp(4px, 1vw, 10px);
+        inline-size: fit-content;
+        max-inline-size: min(92vw, 720px);
+        padding: clamp(10px, 1.6vw, 16px) clamp(18px, 3.5vw, 34px);
+        text-align: center;
+        border-radius: 6px;
+        background:
+            var(--noise-img),
+            linear-gradient(168deg, #d3c9b2 0%, var(--putty) 45%, var(--putty-dark) 100%);
+        background-size: 140px 140px, 100% 100%;
+        background-blend-mode: soft-light, normal;
+        box-shadow:
+            inset 0 1px 0 rgb(255 255 255 / 0.5),
+            inset 0 -2px 3px rgb(0 0 0 / 0.18),
+            0 1px 0 rgb(255 255 255 / 0.08),
+            2px 4px 8px rgb(0 0 0 / 0.35),
+            5px 10px 22px rgb(0 0 0 / 0.22);
+        color: #4d4636;
+    }
+
+    header.desk-plate h1 {
+        margin: 0;
+        font-size: clamp(1rem, 0.6rem + 2.2vw, 1.65rem);
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        text-wrap: balance;
+        /* Engraved into the plastic. */
+        color: #57503e;
+        text-shadow: 0 1px 0 rgb(255 255 255 / 0.35), 0 -1px 1px rgb(0 0 0 / 0.3);
+    }
+
+    header.desk-plate .plate-divider {
+        color: var(--accent);
+    }
+
+    header.desk-plate .amp {
+        text-transform: none;
+    }
+
+    header.desk-plate p {
+        margin: 0.55em auto 0;
+        inline-size: fit-content;
+        max-inline-size: 100%;
+        padding: 0.24em 0.9em 0.3em;
+        font-family: var(--font-mono);
+        font-size: clamp(0.55rem, 0.42rem + 0.8vw, 0.72rem);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #f4f0e4;
+        background: linear-gradient(180deg, #3a3a3f, #202024 55%, #313136);
+        border-radius: 2px;
+        box-shadow:
+            inset 0 1px 0 rgb(255 255 255 / 0.12),
+            0 1px 2px rgb(0 0 0 / 0.4);
+        text-shadow: 0 -1px 0 rgb(0 0 0 / 0.7);
+        rotate: -0.6deg;
+    }
+
+    /* Moulded ventilation slots. */
+    .chin-vents {
+        inline-size: clamp(70px, 18vw, 150px);
+        block-size: 8px;
+        margin-inline-end: auto;
+        background: repeating-linear-gradient(90deg,
+            rgb(0 0 0 / 0.3) 0 3px,
+            transparent 3px 8px);
+    }
+
+    /* The site's small print, screen-printed onto whatever hardware it sits
+       on: the no-tracking note and the contact address. */
+    .small-print {
+        margin-bottom: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: baseline;
+        gap: 0.35em 1em;
+        font-family: var(--font-mono);
+        font-size: 0.56rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--plastic-ink);
+        text-shadow: 0 1px 0 rgb(255 255 255 / 0.3);
+    }
+
+    .small-print p,
+    .small-print address {
+        margin: 0;
+        font-style: normal;
+    }
+
+    .small-print a:link,
+    .small-print a:visited {
+        color: inherit;
+        text-decoration: underline dotted;
+        text-underline-offset: 2px;
+    }
+
+    .small-print a:hover {
+        color: var(--plastic-ink-strong);
+    }
+}

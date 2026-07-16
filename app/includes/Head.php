@@ -28,7 +28,7 @@ class Head
             {$styleSheetLinks}
 
             <head profile="http://www.w3.org/2005/10/profile">
-            <link rel="icon" type="image/png" href="/favicon/gradient-32x32.png">
+            <link rel="icon" type="image/png" href="/favicon/disk-128px.png">
 
             <!-- TODO: RSS feed -->
             <!-- <link rel="alternate" href="/feed/" title="RSS feed" type="application/rss+xml"/> -->

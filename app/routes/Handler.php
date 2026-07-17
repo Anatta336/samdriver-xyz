@@ -4,8 +4,10 @@ namespace App\Routes;
 
 use App\Articles\Article;
 use App\Articles\ArticleList;
+use App\Articles\MarkdownRenderer;
 use App\Articles\Renderer;
 use App\Home\Renderer as HomeRenderer;
+use App\Llms\Renderer as LlmsRenderer;
 use App\NotFound\Renderer as NotFoundRenderer;
 use App\Sitemap\Renderer as SitemapRenderer;
 
@@ -14,6 +16,8 @@ use App\Sitemap\Renderer as SitemapRenderer;
  */
 class Handler
 {
+    const MARKDOWN_SUFFIX = '.md';
+
     public readonly string $uri;
 
     protected array $explodedUri;
@@ -40,6 +44,9 @@ class Handler
                 case 'sitemap.xml':
                     header('Content-Type: application/xml');
                     return SitemapRenderer::render();
+                case 'llms.txt':
+                    header('Content-Type: text/plain; charset=utf-8');
+                    return LlmsRenderer::render();
                 case '/':
                 case '':
                     return HomeRenderer::render();
@@ -75,10 +82,22 @@ class Handler
     protected function renderArticle(): string
     {
         $slug = $this->getSlug();
+
+        // A .md suffix asks for the article as Markdown, e.g. for llms.txt.
+        $wantsMarkdown = str_ends_with(strtolower($slug), self::MARKDOWN_SUFFIX);
+        if ($wantsMarkdown) {
+            $slug = substr($slug, 0, -strlen(self::MARKDOWN_SUFFIX));
+        }
+
         $article = Article::fromSlug($slug, ArticleList::DATA_PATH);
 
         if (!$article) {
             throw new NotFoundException("Article not found: {$slug}");
+        }
+
+        if ($wantsMarkdown) {
+            header('Content-Type: text/markdown; charset=utf-8');
+            return MarkdownRenderer::render($article);
         }
 
         return Renderer::render($article);

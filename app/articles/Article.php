@@ -4,6 +4,7 @@ namespace App\Articles;
 
 use DateTimeImmutable;
 use DOMDocument;
+use DOMElement;
 use DOMXPath;
 
 class Article
@@ -80,9 +81,10 @@ class Article
     }
 
     /**
-     * @return string The <article> element, including the <article> element itself.
+     * @return \DOMElement|null The <article> element, for callers that want to
+     *                          walk the content rather than emit it as HTML.
      */
-    public function getContent(): string
+    public function getContentElement(): ?DOMElement
     {
         if (!$this->document) {
             $this->document = $this->getDocument();
@@ -90,11 +92,18 @@ class Article
 
         if (!$this->document) {
             // Unable to find and/or load file.
-            return '';
+            return null;
         }
 
-        /** @var \DomElement|null $articleElement */
-        $articleElement = $this->document->getElementsByTagName('article')->item(0);
+        return $this->document->getElementsByTagName('article')->item(0);
+    }
+
+    /**
+     * @return string The <article> element, including the <article> element itself.
+     */
+    public function getContent(): string
+    {
+        $articleElement = $this->getContentElement();
 
         if (!$articleElement) {
             // Missing essential content.

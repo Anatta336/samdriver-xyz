@@ -5,6 +5,7 @@ namespace App\Home;
 use App\Articles\ArticleList;
 use App\Includes\DiskPalette;
 use App\Includes\Head;
+use App\Includes\Site;
 use App\Includes\SmallPrint;
 
 class Renderer
@@ -18,8 +19,8 @@ class Renderer
 
         // <head>
         $html .= Head::render(
-            title: 'Sam Driver',
-            description: 'Articles and tutorials on game and web development',
+            title: Site::NAME,
+            description: Site::DESCRIPTION,
             styleSheetPath: '/css/home.css',
         );
 

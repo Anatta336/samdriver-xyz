@@ -30,7 +30,7 @@ class Renderer
         $html .= '<p>Game and web development. Pick a disk, or slot one into the drive.</p>';
         $html .= '</header>';
 
-        $html .= '<nav aria-label="Articles"><ul class="disk-field">';
+        $html .= '<main><nav aria-label="Articles"><ul class="disk-field">';
         $index = 0;
         foreach ((new ArticleList())->getArticles() as $article) {
             if (empty($article) || !$article->exists()) {
@@ -40,7 +40,7 @@ class Renderer
             $html .= self::renderDisk($article, $index);
             ++$index;
         }
-        $html .= '</ul></nav>';
+        $html .= '</ul></nav></main>';
 
         $html .= self::renderDrive();
 

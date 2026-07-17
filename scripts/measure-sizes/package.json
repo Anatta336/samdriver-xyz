@@ -1,0 +1,12 @@
+{
+    "name": "measure-sizes",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Measures what a browser downloads per article and records it in each article's head.",
+    "scripts": {
+        "measure": "node measure.js"
+    },
+    "devDependencies": {
+        "playwright": "^1.49.0"
+    }
+}

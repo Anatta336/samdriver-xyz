@@ -14,7 +14,9 @@ class Article
     private ?string $name = null;
     private ?string $description = null;
     private ?string $sort = null;
+    private ?int $size = null;
     private ?string $path = null;
+    private bool $summaryLoaded = false;
 
     public static function fromSlug(string $slug, string $dataPath): Article|null
     {
@@ -55,29 +57,36 @@ class Article
 
     public function getName(): string
     {
-        if (empty($this->name)) {
-            $this->loadSummary();
-        }
+        $this->loadSummary();
 
         return $this->name ?? '[Unknown]';
     }
 
     public function getDescription(): string
     {
-        if (empty($this->description)) {
-            $this->loadSummary();
-        }
+        $this->loadSummary();
 
         return $this->description ?? '-';
     }
 
     public function getSort(): string
     {
-        if (empty($this->sort)) {
-            $this->loadSummary();
-        }
+        $this->loadSummary();
 
         return $this->sort ?? '2000-01-00';
+    }
+
+    /**
+     * Approximate bytes a browser downloads when visiting this article, as
+     * measured by scripts/measure-sizes and recorded in the article's head.
+     *
+     * @return int|null Null when the article has never been measured.
+     */
+    public function getSize(): ?int
+    {
+        $this->loadSummary();
+
+        return $this->size;
     }
 
     /**
@@ -151,6 +160,10 @@ class Article
 
     private function loadSummary(): void
     {
+        if ($this->summaryLoaded) {
+            return;
+        }
+
         if (!$this->document) {
             $this->document = $this->getDocument();
         }
@@ -159,6 +172,8 @@ class Article
             // Unable to find and/or load file.
             return;
         }
+
+        $this->summaryLoaded = true;
 
         /** @var \DomElement|null */
         $headElement = $this->document->getElementsByTagName('head')->item(0);
@@ -183,6 +198,11 @@ class Article
 
             if ($metaElement->getAttribute('name') === 'sort') {
                 $this->sort = $metaElement->getAttribute('content');
+                continue;
+            }
+
+            if ($metaElement->getAttribute('name') === 'size') {
+                $this->size = (int) $metaElement->getAttribute('content');
                 continue;
             }
         }

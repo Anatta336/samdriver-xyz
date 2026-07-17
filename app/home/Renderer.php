@@ -4,6 +4,7 @@ namespace App\Home;
 
 use App\Articles\ArticleList;
 use App\Includes\DiskPalette;
+use App\Includes\FileSize;
 use App\Includes\Head;
 use App\Includes\Site;
 use App\Includes\SmallPrint;
@@ -101,7 +102,13 @@ class Renderer
         );
 
         $name = htmlentities($article->getName());
-        $description = htmlentities($article->getDescription());
+
+        // Measured download weight, printed like a capacity. Articles that have
+        // never been measured simply don't carry one.
+        $size = $article->getSize();
+        $sizeLabel = $size === null
+            ? ''
+            : '<span class="label-size">'.str_replace(' ', '&nbsp;', htmlentities(FileSize::format($size))).'</span>';
 
         // Older articles carry placeholder ordering dates; stamp those with a
         // serial number instead.
@@ -124,7 +131,7 @@ class Renderer
         // Paper label, printed by a tired dot-matrix printer.
         $html .= '<span class="label">';
         $html .= '<h2>'.$name.'</h2>';
-        $html .= '<span class="label-meta" aria-hidden="true"><span class="label-date">'.$date.'</span><span class="label-density">2HD&thinsp;&middot;&thinsp;1.44&nbsp;MB</span></span>';
+        $html .= '<span class="label-meta" aria-hidden="true"><span class="label-date">'.$date.'</span>'.$sizeLabel.'</span>';
         $html .= '</span>';
 
         // Moulded details.

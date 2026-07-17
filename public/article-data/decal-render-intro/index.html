@@ -29,19 +29,41 @@
 <h2>View-space projection</h2>
 <p>Today this tends to be what people initially think of when talking about decals. View-space projection decals are rendered by performing the projection process during rendering. Each decal exists in the scene as a simple mesh&mdash;usually a cuboid. The decal is rendered using a fragment shader that looks at the world position of whatever else was rendered where that fragment is placed. Using that world position with the position and size of the decal itself it works out what part of the decal's texture (if any) should appear in the fragment.</p>
 
-<!-- loader script shared by all 3 demos
-    but they seem to be downloading the identical file 3 times anyway. -->
+<!-- loader script shared by all 3 demos -->
 <script src="/article-data/decal-render-intro/Build/UnityLoader.js"></script>
+<script>
+    // Each demo pulls ~8MB of Unity build, so hold off until the reader is near it. Starting
+    // all 3 at once made them race: each checked the loader's IndexedDB cache before any of
+    // them had finished writing to it, so all 3 downloaded their own copy of the same files.
+    // Staggered by scrolling, later demos find the files already cached.
+    function unityDemoWhenNearViewport(containerId, argument) {
+        var observer = new IntersectionObserver(function (entries, self) {
+            var isNear = entries.some(function (entry) {
+                return entry.isIntersecting;
+            });
+            if (!isNear) {
+                return;
+            }
+            self.disconnect();
 
-<div id="unityDecal" style="max-width: 100%; width: auto; height: auto; margin: auto"></div>
-<script defer="true">
-    var unityInstanceDecal = UnityLoader.instantiate("unityDecal", "/article-data/decal-render-intro/Build/WebGL.json");
+            var instance = UnityLoader.instantiate(containerId,
+                "/article-data/decal-render-intro/Build/WebGL.json");
 
-    // a little unusual, but we can provide "command line arguments" to the instantiated unity player
-    unityInstanceDecal.Module.arguments = "-decals";
+            // a little unusual, but we can provide "command line arguments" to the instantiated unity player
+            instance.Module.arguments = argument;
 
-    // could also send a message into the player, although would want to delay that until it has actually started
-    // unityInstanceDecal.SendMessage("SomeGameObject", "SomeFunctionOnTheObject");
+            // could also send a message into the player, although would want to delay that until it has actually started
+            // instance.SendMessage("SomeGameObject", "SomeFunctionOnTheObject");
+        }, { rootMargin: "200px" });
+
+        observer.observe(document.getElementById(containerId));
+    }
+</script>
+
+<!-- aspect-ratio reserves the player's space so nothing shifts when it loads in -->
+<div id="unityDecal" style="max-width: 100%; width: auto; height: auto; aspect-ratio: 2 / 1; margin: auto"></div>
+<script>
+    unityDemoWhenNearViewport("unityDecal", "-decals");
 </script>
 <noscript>
 	<!-- if javascript is disabled replace the Unity div with an image and warning -->
@@ -67,11 +89,9 @@
 
 <p>You'll need to provide that scene depth in a readable texture, but as it's also used for other rendering techniques there's a good chance you'd be doing it anyway. The universal render pipeline settings asset has a checkbox for generating a depth texture, as well as an optional override on the camera itself.</p>
 
-<div id="unityWasted" style="max-width: 100%; width: auto; height: auto; margin: auto"></div>
-<!-- <div id="unityWasted" style="width: 750px; height: 500px; margin: auto"></div> -->
-<script defer="true">
-    var unityInstanceWasted = UnityLoader.instantiate("unityWasted", "/article-data/decal-render-intro/Build/WebGL.json");
-    unityInstanceWasted.Module.arguments = "-wasted";
+<div id="unityWasted" style="max-width: 100%; width: auto; height: auto; aspect-ratio: 2 / 1; margin: auto"></div>
+<script>
+    unityDemoWhenNearViewport("unityWasted", "-wasted");
 </script>
 <noscript>
 	<style>
@@ -98,10 +118,9 @@
 
 <p><i>Alyx</i> uses generated mesh decals in a few places for adding texture decorations to the scene. The wireframe mesh shown above is the mesh of the painting decal (technically it's two meshes that I combined in the image for convenience.) The decal's mesh isn't just a copy of the mesh used by the flat wall and the extruded bricks. Instead it's made up of the triangles near the decal, clipped to fit within the decal's bounds. You can see how the wall mesh forms a rotated quad shape, but split into extra triangles. Those extra triangles are there because it was generated from the wall mesh's original triangles getting clipped.</p>
 
-<div id="unityWireframe" style="max-width: 100%; width: auto; height: auto; margin: auto"></div>
-<script defer="true">
-    var unityInstanceWireframe = UnityLoader.instantiate("unityWireframe", "/article-data/decal-render-intro/Build/WebGL.json");
-    unityInstanceWireframe.Module.arguments = "-wireframe";
+<div id="unityWireframe" style="max-width: 100%; width: auto; height: auto; aspect-ratio: 2 / 1; margin: auto"></div>
+<script>
+    unityDemoWhenNearViewport("unityWireframe", "-wireframe");
 </script>
 <noscript>
 	<style>

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Evolved Swimmers</title>
+    <meta name="description" content="Virtual creatures evolved to swim towards a target" />
+    <meta name="sort" content="2026-09-20" />
+    <!-- The site's scripts/measure-sizes writes this; kept here so a rebuild doesn't lose it. -->
+    <meta name="size" content="194262">
+    <meta name="public" content="true" />
+  </head>
+  <body>
+    <article>
+      <p>
+        Here are a handful of virtual creatures inspired by Karl Sims' <a href="https://www.karlsims.com/evolved-virtual-creatures.html">Evolving Virtual Creatures</a> (1994).
+      </p>
+
+      <p>
+        The bodies and the "brains" that control them were created through some basic evolutionary algorithms.
+        That means rather than anyone designing each creature, they started off randomly generated (and hopeless at swimming) and gradually developed through evolution.
+        The system generates a batch of slightly different creatures, tests each to see which is best at swimming, and picks the most successful to form the basis of the next generation.
+        There's some more nuance involved to keep variety, and of course which ones are picked for showing here is very much decided by a human.
+      </p>
+
+      <p>
+        The bodies are a graph of blocks, with joints of various types connecting them. That graph has built-in support for lateral symmetry, although they can add asymmetrical blocks as well.
+        The brains are fairly tiny neural networks, which include input indicating the relative direction to the target.
+        The nature of how these are structured plays at least as much a role in what ends up appearing as the (also fairly basic) physics simulation of the blocks moving through the water.
+      </p>
+
+      <link rel="stylesheet" crossorigin href="/article-data/evolved-swimmers/assets/view-BPHynF6S.css">
+      <div class="app embed">
+            <header class="topbar">
+              <h1>Evolved Swimmers</h1>
+              <p class="tagline">
+                Virtual creatures that evolved to swim towards a target, after Karl Sims (1994)
+              </p>
+              <span class="badge" id="backend-badge" title="Simulation backend">&#8230;</span>
+            </header>
+      
+            <aside class="sidebar">
+              <section class="panel">
+                <p id="list-empty" class="list-empty muted small" hidden>
+                  No creatures found. This page reads
+                  <code>creatures/index.json</code> next to it, which lists the creature files to show.
+                </p>
+                <ul class="creature-list" id="creature-list" aria-label="Creatures"></ul>
+              </section>
+            </aside>
+      
+            <main class="stage">
+              <canvas id="view" aria-label="3D view. Click to place the target."></canvas>
+      
+              <div class="hud" id="hud">
+                <div class="hud-title">
+                  <h2 id="hud-name">&#8212;</h2>
+                  <button
+                    id="btn-hud"
+                    class="hud-toggle"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="hud-body"
+                    title="Show the stats"
+                  >
+                    <svg viewBox="0 0 10 6" width="10" height="6" aria-hidden="true">
+                      <path
+                        d="M1 1.5 5 5 9 1.5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div class="hud-body" id="hud-body">
+                  <p id="hud-meta" class="muted"></p>
+                  <dl class="stats" aria-live="polite">
+                    <div>
+                      <dt>Distance to target</dt>
+                      <dd id="hud-dist">&#8211;</dd>
+                    </div>
+                    <div>
+                      <dt>Speed</dt>
+                      <dd id="hud-speed">&#8211;</dd>
+                    </div>
+                    <div>
+                      <dt>Time</dt>
+                      <dd id="hud-time">&#8211;</dd>
+                    </div>
+                    <div>
+                      <dt>Targets reached</dt>
+                      <dd id="hud-reached">0</dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+      
+              <div class="toolbar" role="toolbar" aria-label="Simulation controls">
+                <button id="btn-pause" aria-pressed="false" title="Pause (Space)">Pause</button>
+                <button id="btn-reset" title="Restart the creature (R)">Reset</button>
+                <label class="speed"
+                  >Speed <input type="range" id="speed" min="0.25" max="4" step="0.25" value="1" /><output
+                    id="speed-out"
+                    >1&#215;</output
+                  ></label
+                >
+                <button id="btn-random-target" title="Random target (T)">Random target</button>
+                <label class="check" title="Reaching the target places the next one a leg further on (C)"
+                  ><input type="checkbox" id="chk-course" checked /> Course</label
+                >
+                <label class="check"><input type="checkbox" id="chk-follow" checked /> Follow</label>
+                <label
+                  >Physics
+                  <select id="sel-backend">
+                    <option value="gpu">GPU</option>
+                    <option value="cpu">CPU</option>
+                  </select>
+                </label>
+              </div>
+      
+              <p class="hint swim-hint">
+                Click the water to place the target &#183; drag to orbit &#183; right-drag to pan &#183; scroll to zoom &#183;
+                drag the target to move it (scroll while dragging to change depth)
+              </p>
+            </main>
+      
+            <!-- Inside .app because the stylesheet is scoped to it, top layer or not. -->
+            <dialog id="no-webgpu">
+              <h2>WebGPU is not available</h2>
+              <p>
+                This page renders and simulates with WebGPU. Please use a recent Chrome, Edge, Safari 26+
+                or Firefox 141+ with hardware acceleration enabled.
+              </p>
+              <p id="no-webgpu-detail" class="muted"></p>
+            </dialog>
+          </div>
+      <script type="module" crossorigin src="/article-data/evolved-swimmers/assets/view-CpFOCIgy.js"></script>
+
+      <p>
+        Drag to orbit, scroll or pinch to zoom. Tap to place the target it'll swim towards. "Course" mode automatically adds a new target when the current one is reached. "Follow" keeps the camera on the creature.
+      </p>
+
+      <p>
+        It does need WebGPU, which today means a recent Chrome or Edge, Safari 26+, or Firefox 141+,
+        on a machine with hardware acceleration switched on.
+      </p>
+    </article>
+  </body>
+</html>

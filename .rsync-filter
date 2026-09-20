@@ -1,6 +1,6 @@
-.git
-.gitignore
-.rsync-filter
-.playwright-mcp
-vendor
-scripts
+- .git
+- .gitignore
+- .rsync-filter
+- .playwright-mcp
+- vendor
+- scripts
